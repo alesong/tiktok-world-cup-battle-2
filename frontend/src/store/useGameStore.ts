@@ -1,0 +1,429 @@
+import { create } from 'zustand';
+import { io, Socket } from 'socket.io-client';
+
+export interface Team {
+  id: string;
+  name: string;
+  flag: string;
+  primaryColor: string;
+  secondaryColor: string;
+  jerseyColor: string;
+}
+
+export interface Donor {
+  username: string;
+  diamonds: number;
+  teamId: string;
+  avatar: string;
+}
+
+export interface GameSettings {
+  admin_password?: string;
+  goal_distance_diamonds: string;
+  goal_distance_pixels: string;
+  match_mode: string;
+  match_limit: string;
+  volume: string;
+  vol_whistle?: string;
+  vol_kick?: string;
+  vol_goal?: string;
+  vol_cheer?: string;
+  vol_beep?: string;
+  vol_win?: string;
+  vol_grass?: string;
+  vol_drum?: string;
+  vol_band?: string;
+  donor_card_y?: string;
+  player_scale?: string;
+  event_multiplier: string;
+  event_gold_goal: string;
+  event_penalty: string;
+  event_turbo: string;
+  local_team_id: string;
+  visitor_team_id: string;
+  local_score: string;
+  visitor_score: string;
+  ball_progress: string;
+  match_state: string;
+  gift_values?: string;
+  overlay_resolution?: string;
+  top_donors_count?: string;
+  top_donors_gap?: string;
+  top_donors_icon_size?: string;
+  top_donors_font_size?: string;
+  top_donors_font_family?: string;
+  top_donors_bg_opacity?: string;
+  top_donors_show_name?: string;
+}
+
+interface GameState {
+  matchState: 'idle' | 'playing' | 'celebrating' | 'finished';
+  ballProgress: number;
+  localScore: number;
+  visitorScore: number;
+  localTeam: Team | null;
+  visitorTeam: Team | null;
+  donors: Donor[];
+  settings: GameSettings;
+  teams: Team[];
+  activeAlert: { type: 'follow' | 'share' | 'join' | 'gift'; username: string; details?: string; avatar?: string } | null;
+  timeLeft: number;
+  isConnecting: boolean;
+  isConnected: boolean;
+  socket: Socket | null;
+  initSocket: () => void;
+  setAlert: (alert: GameState['activeAlert']) => void;
+  triggerSound: (soundType: 'whistle' | 'kick' | 'goal' | 'cheer' | 'beep' | 'win' | 'grass' | 'drum' | 'band') => void;
+  soundSynth: any;
+  likeProgress: number;
+  lastLiker: { username: string; avatar: string } | null;
+  upcomingReward: 'event_gold_goal' | 'event_multiplier' | 'event_turbo';
+  rewardTimeLeft: number;
+  likeCelebration: boolean;
+  lastDonor: { username: string; avatar: string; giftName?: string; diamonds?: number } | null;
+}
+
+export const useGameStore = create<GameState>((set, get) => {
+  let timerId: any = null;
+  let rewardTimerId: any = null;
+  let lastLikerTimerId: any = null;
+  let lastDonorTimerId: any = null;
+
+  return {
+    matchState: 'idle',
+    likeProgress: 0,
+    lastLiker: null,
+    lastDonor: null,
+    upcomingReward: 'event_gold_goal',
+    rewardTimeLeft: 0,
+    likeCelebration: false,
+    ballProgress: 0,
+    localScore: 0,
+    visitorScore: 0,
+    localTeam: null,
+    visitorTeam: null,
+    donors: [],
+    settings: {
+      goal_distance_diamonds: '200',
+      goal_distance_pixels: '600',
+      match_mode: 'goals',
+      match_limit: '3',
+      volume: '0.5',
+      vol_whistle: '0.5',
+      vol_kick: '0.5',
+      vol_goal: '0.5',
+      vol_cheer: '0.5',
+      vol_beep: '0.5',
+      vol_win: '0.5',
+      vol_grass: '0.5',
+      vol_drum: '0.5',
+      vol_band: '0.5',
+      donor_card_y: '50',
+      player_scale: '100',
+      event_multiplier: '1',
+      event_gold_goal: 'false',
+      event_penalty: 'none',
+      event_turbo: 'false',
+      local_team_id: 'ARG',
+      visitor_team_id: 'BRA',
+      local_score: '0',
+      visitor_score: '0',
+      ball_progress: '0',
+      match_state: 'idle',
+      overlay_resolution: '1920x1080',
+      top_donors_count: '3',
+      top_donors_gap: '8',
+      top_donors_icon_size: '32',
+      top_donors_font_size: '16',
+      top_donors_font_family: 'Arial',
+      top_donors_bg_opacity: '60',
+      top_donors_show_name: 'true'
+    },
+    teams: [],
+    activeAlert: null,
+    timeLeft: 600, // 10 minutes default
+    isConnecting: true,
+    isConnected: false,
+    socket: null,
+    soundSynth: null,
+
+    setAlert: (alert) => {
+      set({ activeAlert: alert });
+      if (alert) {
+        setTimeout(() => {
+          if (get().activeAlert?.username === alert.username) {
+            set({ activeAlert: null });
+          }
+        }, 3500);
+      }
+    },
+
+    triggerSound: (soundType) => {
+      const synth = get().soundSynth;
+      const settings = get().settings;
+      const specificVolStr = settings?.[`vol_${soundType}` as keyof GameSettings] as string | undefined;
+      const vol = parseFloat(specificVolStr ?? settings?.volume ?? '0.5');
+      if (synth && typeof synth.play === 'function') {
+        synth.play(soundType, vol);
+      }
+    },
+
+    initSocket: () => {
+      if (get().socket) return; // already initialized
+
+      set({ isConnecting: true });
+
+      const socketUrl = `${window.location.protocol}//${window.location.hostname}:5000`;
+      console.log('Connecting socket to:', socketUrl);
+      
+      const socket = io(socketUrl, {
+        reconnectionAttempts: 10,
+        reconnectionDelay: 2000
+      });
+
+      socket.on('connect', () => {
+        set({ isConnected: true, isConnecting: false });
+        console.log('Socket.io connected successfully!');
+      });
+
+      socket.on('disconnect', () => {
+        set({ isConnected: false });
+        console.log('Socket.io disconnected!');
+      });
+
+      socket.on('init_state', (data: any) => {
+        set({
+          matchState: data.matchState,
+          ballProgress: data.ballProgress,
+          localScore: data.localScore,
+          visitorScore: data.visitorScore,
+          settings: data.settings,
+          localTeam: data.localTeam,
+          visitorTeam: data.visitorTeam,
+          donors: data.donors,
+          teams: data.teams || [],
+          isConnecting: false
+        });
+
+        // Initialize clock if match_mode is time
+        if (data.settings.match_mode === 'time') {
+          const limitSeconds = parseInt(data.settings.match_limit || '600', 10);
+          set({ timeLeft: limitSeconds });
+        }
+      });
+
+      // Synchronize partial details dynamically
+      socket.on('game_state_update', (data: any) => {
+        const updates: Partial<GameState> = {};
+        if (data.matchState !== undefined) updates.matchState = data.matchState;
+        if (data.ballProgress !== undefined) updates.ballProgress = data.ballProgress;
+        if (data.localScore !== undefined) updates.localScore = data.localScore;
+        if (data.visitorScore !== undefined) updates.visitorScore = data.visitorScore;
+        if (data.settings !== undefined) updates.settings = data.settings;
+        if (data.localTeam !== undefined) updates.localTeam = data.localTeam;
+        if (data.visitorTeam !== undefined) updates.visitorTeam = data.visitorTeam;
+        if (data.donors !== undefined) updates.donors = data.donors;
+        
+        set(updates);
+
+        // Handle Time Mode ticking
+        if (data.matchState === 'playing' && data.settings.match_mode === 'time') {
+          if (!timerId) {
+            timerId = setInterval(() => {
+              const current = get().timeLeft;
+              const mode = get().settings.match_mode;
+              const state = get().matchState;
+
+              if (state === 'playing' && mode === 'time' && current > 0) {
+                const nextTime = current - 1;
+                set({ timeLeft: nextTime });
+
+                // Play beep warning in last 5 seconds
+                if (nextTime <= 5 && nextTime > 0) {
+                  get().triggerSound('beep');
+                }
+
+                if (nextTime === 0) {
+                  // Time-over: trigger whistler sound and tell server
+                  get().triggerSound('whistle');
+                  clearInterval(timerId);
+                  timerId = null;
+                  
+                  // Request server to end match
+                  fetch(`${socketUrl}/api/settings`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ match_state: 'finished' })
+                  }).then(() => {
+                    // Call end match explicitly
+                    fetch(`${socketUrl}/api/simulate`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ type: 'match_end' }) // triggers backend evaluation
+                    }).catch(console.error);
+                  }).catch(console.error);
+                }
+              } else if (state !== 'playing') {
+                clearInterval(timerId);
+                timerId = null;
+              }
+            }, 1000);
+          }
+        } else {
+          if (timerId) {
+            clearInterval(timerId);
+            timerId = null;
+          }
+        }
+      });
+
+      // Listen for specific gameplay events to trigger sounds and React popups
+      socket.on('game_action', (action: any) => {
+        if (action.progress !== undefined) {
+          set({ ballProgress: action.progress });
+        }
+        switch (action.type) {
+          case 'gift':
+            get().triggerSound('band');
+            
+            set({
+              lastDonor: {
+                username: action.username || 'Alguien',
+                avatar: action.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${action.username || 'donor'}`,
+                giftName: action.giftName,
+                diamonds: action.diamondCount || action.diamonds
+              }
+            });
+
+            if (lastDonorTimerId) clearTimeout(lastDonorTimerId);
+            lastDonorTimerId = setTimeout(() => set({ lastDonor: null }), 4000);
+            
+            window.dispatchEvent(new CustomEvent('tiktok_gift', { detail: action }));
+            break;
+          case 'like':
+            // Spawn sparks via window event for GameScene to catch
+            get().triggerSound('cheer');
+            window.dispatchEvent(new CustomEvent('tiktok_like', { detail: action }));
+            
+            // Like Bar Logic
+            const state = get();
+            if (state.rewardTimeLeft > 0) break; // Don't accumulate while reward is active
+            
+            const newProgress = Math.min(10000, state.likeProgress + (action.likeCount || 1));
+            set({
+              likeProgress: newProgress,
+              lastLiker: { username: action.username, avatar: action.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${action.username}` }
+            });
+
+            // Clear last liker after 3 seconds
+            if (lastLikerTimerId) clearTimeout(lastLikerTimerId);
+            lastLikerTimerId = setTimeout(() => set({ lastLiker: null }), 3000);
+
+            if (newProgress >= 10000) {
+              set({ likeCelebration: true, rewardTimeLeft: 120 });
+              get().triggerSound('drum');
+              
+              // Activate reward via API
+              const socketUrl = `${window.location.protocol}//${window.location.hostname}:5000`;
+              fetch(`${socketUrl}/api/settings`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ [state.upcomingReward]: state.upcomingReward === 'event_multiplier' ? '2' : 'true' })
+              }).catch(console.error);
+
+              // 120s Countdown
+              rewardTimerId = setInterval(() => {
+                const currentRewardTime = get().rewardTimeLeft;
+                if (currentRewardTime > 1) {
+                  set({ rewardTimeLeft: currentRewardTime - 1 });
+                } else {
+                  // End of reward
+                  clearInterval(rewardTimerId);
+                  rewardTimerId = null;
+                  
+                  // Disable reward
+                  fetch(`${socketUrl}/api/settings`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ [state.upcomingReward]: state.upcomingReward === 'event_multiplier' ? '1' : 'false' })
+                  }).catch(console.error);
+
+                  // Cycle next reward
+                  const cycle = ['event_gold_goal', 'event_multiplier', 'event_turbo'] as const;
+                  const nextIndex = (cycle.indexOf(state.upcomingReward) + 1) % cycle.length;
+                  
+                  set({
+                    likeProgress: 0,
+                    likeCelebration: false,
+                    rewardTimeLeft: 0,
+                    upcomingReward: cycle[nextIndex]
+                  });
+                }
+              }, 1000);
+
+              // Clear celebration UI after 5 seconds
+              setTimeout(() => set({ likeCelebration: false }), 5000);
+            }
+            break;
+          case 'share':
+            get().triggerSound('kick');
+            get().setAlert({
+              type: 'share',
+              username: action.username,
+              details: 'compartió el stream',
+              avatar: action.avatar
+            });
+            break;
+          case 'follow':
+            get().triggerSound('cheer');
+            get().setAlert({
+              type: 'follow',
+              username: action.username,
+              details: 'es un nuevo seguidor',
+              avatar: action.avatar
+            });
+            break;
+          case 'join':
+            get().setAlert({
+              type: 'join',
+              username: action.username,
+              details: 'se unió al estadio',
+              avatar: action.avatar
+            });
+            break;
+          case 'goal':
+            get().triggerSound('goal');
+            get().triggerSound('cheer');
+            if (action.localScore !== undefined && action.visitorScore !== undefined) {
+              set({
+                localScore: action.localScore,
+                visitorScore: action.visitorScore,
+                matchState: 'celebrating'
+              });
+            }
+            break;
+          case 'match_started':
+            get().triggerSound('whistle');
+            break;
+          case 'match_paused':
+            get().triggerSound('whistle');
+            break;
+          case 'match_finished':
+            get().triggerSound('whistle');
+            get().triggerSound('win');
+            break;
+          case 'match_reset':
+            // Recalibrate
+            set({ timeLeft: parseInt(get().settings.match_limit || '600', 10) });
+            break;
+        }
+      });
+
+      socket.on('donors_update', (donorsList: Donor[]) => {
+        set({ donors: donorsList });
+      });
+
+      set({ socket });
+    }
+  };
+});

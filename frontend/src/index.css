@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-sans bg-slate-950 text-slate-100 h-full w-full;
+    background-image: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+  }
+
+  /* Custom Scrollbars */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.3);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(100, 116, 139, 0.5);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 116, 139, 0.8);
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-slate-900/65 backdrop-blur-md border border-white/10 shadow-2xl;
+  }
+  
+  .glass-card-glow {
+    @apply bg-slate-900/75 backdrop-blur-md border border-amber-500/20 shadow-[0_0_20px_rgba(245,158,11,0.15)];
+  }
+
+  .text-neon-gold {
+    text-shadow: 0 0 10px rgba(245, 158, 11, 0.6), 0 0 20px rgba(245, 158, 11, 0.3);
+  }
+
+  .text-neon-green {
+    text-shadow: 0 0 10px rgba(74, 222, 128, 0.6), 0 0 20px rgba(74, 222, 128, 0.3);
+  }
+
+  .text-neon-red {
+    text-shadow: 0 0 10px rgba(239, 68, 68, 0.6), 0 0 20px rgba(239, 68, 68, 0.3);
+  }
+}
+
+/* Custom styles for Phaser Canvas centering */
+#phaser-game-container canvas {
+  margin: 0 auto;
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+}

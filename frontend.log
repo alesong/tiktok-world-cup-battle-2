@@ -1,0 +1,13 @@
+
+> tiktok-world-cup-battle-frontend@1.0.0 dev
+> vite
+
+Port 5173 is in use, trying another one...
+
+  VITE v5.4.21  ready in 369 ms
+
+  ➜  Local:   http://localhost:5174/
+21:17:32 [vite] hmr update /src/index.css, /src/components/AlertOverlay.tsx, /src/components/TopDonorsOverlay.tsx, /src/components/OverlayView.tsx, /src/components/AdminPanel.tsx
+21:18:10 [vite] hmr update /src/components/AdminPanel.tsx, /src/index.css
+21:18:27 [vite] hmr update /src/components/OverlayView.tsx, /src/index.css
+21:18:30 [vite] hmr update /src/index.css, /src/components/OverlayView.tsx
