@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useGameStore } from '../store/useGameStore.js';
 import { globalSoundSynth } from '../audio/SoundSynth.js';
 import { Trophy, Star, Zap, Sparkles, Heart, Award } from 'lucide-react';
@@ -29,7 +29,7 @@ export const OverlayView: React.FC = () => {
   // Initialize socket connection and sound synthesis reference
   useEffect(() => {
     initSocket();
-    
+
     // Inject the synthetic sound class into the Zustand store for runtime triggers
     useGameStore.setState({ soundSynth: globalSoundSynth });
 
@@ -49,7 +49,7 @@ export const OverlayView: React.FC = () => {
       },
       scene: [GameScene]
     };
-    
+
     const game = new Phaser.Game(config);
 
     return () => {
@@ -106,6 +106,46 @@ export const OverlayView: React.FC = () => {
 
   const topDonorsLocal = donors.filter(d => d.teamId === localTeam?.id).slice(0, donorsCount);
   const topDonorsVisitor = donors.filter(d => d.teamId === visitorTeam?.id).slice(0, donorsCount);
+  const donorsDisplay = settings.top_donors_display || 'list';
+
+  const allTopDonors = [...topDonorsLocal, ...topDonorsVisitor];
+
+  // Random positions for pitch display mode
+  const [donorPositions, setDonorPositions] = useState<Record<string, { x: number; y: number }>>({});
+
+  // Set initial positions when donors change in pitch mode
+  useEffect(() => {
+    if (donorsDisplay !== 'pitch') return;
+    const positions: Record<string, { x: number; y: number }> = {};
+    allTopDonors.forEach(d => {
+      positions[d.username] = {
+        x: 25 + Math.random() * 50,
+        y: 30 + Math.random() * 40
+      };
+    });
+    if (Object.keys(positions).length) setDonorPositions(positions);
+  }, [donorsDisplay, allTopDonors.length]);
+
+  // Auto-move randomly only during playing (slow, short distances)
+  useEffect(() => {
+    if (donorsDisplay !== 'pitch' || matchState !== 'playing') return;
+    const move = () => {
+      setDonorPositions(prev => {
+        const next = { ...prev };
+        Object.keys(next).forEach(k => {
+          const current = next[k];
+          next[k] = {
+            x: Math.max(25, Math.min(75, current.x + (Math.random() - 0.5) * 20)),
+            y: Math.max(30, Math.min(70, current.y + (Math.random() - 0.5) * 16))
+          };
+        });
+        return next;
+      });
+    };
+    move();
+    const id = window.setInterval(move, 7000 + Math.random() * 5000);
+    return () => clearInterval(id);
+  }, [donorsDisplay, matchState]);
 
   let containerStyle: React.CSSProperties = {
     position: 'relative',
@@ -125,12 +165,12 @@ export const OverlayView: React.FC = () => {
   }
 
   return (
-    <div 
-      style={containerStyle} 
+    <div
+      style={containerStyle}
       className="antialiased font-sans"
       onClick={() => globalSoundSynth.play('kick', 0)}
     >
-      
+
       {/* Background container for Phaser canvas */}
       <div
         id="phaser-game-container"
@@ -139,7 +179,7 @@ export const OverlayView: React.FC = () => {
 
       {/* --- HUD FOREGROUND OVERLAYS --- */}
       <div className="absolute inset-0 z-10 p-6 flex flex-col justify-between pointer-events-none">
-        
+
         {/* 1. TOP HUD CONTAINER (Scoreboard + Gifts + Donors) */}
         <div className="w-full flex flex-col items-center">
           {/* SCOREBOARD */}
@@ -147,7 +187,7 @@ export const OverlayView: React.FC = () => {
             <div className="relative glass-card flex items-center justify-between px-8 py-3 rounded-full border border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.5)] min-w-[760px] h-20 overflow-hidden">
               {/* Glossy overlay background */}
               <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent"></div>
-              
+
               {/* Local Team Info */}
               <div className="flex items-center gap-4 w-1/3 justify-end">
                 <span className="font-sports font-extrabold text-xl uppercase tracking-wider text-slate-100 truncate">
@@ -163,7 +203,7 @@ export const OverlayView: React.FC = () => {
                 <span className="font-sports font-black text-4xl text-neon-green text-green-400 min-w-[45px] text-right">
                   {localScore}
                 </span>
-                
+
                 {/* Timer clock HUD */}
                 <div className="flex flex-col items-center justify-center bg-slate-950/80 px-4 py-1.5 rounded-xl border border-white/5 shadow-inner">
                   <span className="font-sports font-bold text-lg text-slate-300 tracking-wider">
@@ -213,19 +253,21 @@ export const OverlayView: React.FC = () => {
                   </div>
                 ))}
               </div>
-              
+
               {/* Top Jugadores Local */}
-              <div className="flex flex-col w-full items-start" style={{ gap: `${donorsGap}px` }}>
-                <h3 className="font-sports text-white/80 text-xs tracking-widest uppercase mb-0.5">Top Jugadores</h3>
-                {topDonorsLocal.map((donor, idx) => (
-                  <div key={donor.username} className={`flex items-center gap-3 p-2 rounded-lg border border-white/5 shadow-md ${donorsShowName ? 'w-full' : 'w-fit'}`} style={{ backgroundColor: `rgba(15, 23, 42, ${donorsBgOpacity})` }}>
-                    <span className="text-amber-500 font-black text-lg w-5">#{idx + 1}</span>
-                    <img src={donor.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${donor.username}`} className="rounded-full border border-white/20" alt="avatar" style={{ width: `${donorsIconSize}px`, height: `${donorsIconSize}px` }} />
-                    {donorsShowName && <span className="text-white font-bold truncate flex-1 text-base" style={{ fontSize: `${donorsFontSize}px`, fontFamily: donorsFontFamily }}>{donor.username}</span>}
-                    <span className="text-amber-400 font-bold text-base" style={{ fontSize: `${donorsFontSize}px`, fontFamily: donorsFontFamily }}>{donor.diamonds} 💎</span>
-                  </div>
-                ))}
-              </div>
+              {(donorsDisplay !== 'pitch') && (
+                <div className="flex flex-col w-full items-start" style={{ gap: `${donorsGap}px` }}>
+                  <h3 className="font-sports text-white/80 text-xs tracking-widest uppercase mb-0.5">Top Jugadores</h3>
+                  {topDonorsLocal.map((donor, idx) => (
+                    <div key={donor.username} className={`flex items-center gap-3 p-2 rounded-lg border border-white/5 shadow-md ${donorsShowName ? 'w-full' : 'w-fit'}`} style={{ backgroundColor: `rgba(15, 23, 42, ${donorsBgOpacity})` }}>
+                      <span className="text-amber-500 font-black text-lg w-5">#{idx + 1}</span>
+                      <img src={donor.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${donor.username}`} className="rounded-full border border-white/20" alt="avatar" style={{ width: `${donorsIconSize}px`, height: `${donorsIconSize}px` }} />
+                      {donorsShowName && <span className="text-white font-bold truncate flex-1 text-base" style={{ fontSize: `${donorsFontSize}px`, fontFamily: donorsFontFamily }}>{donor.username}</span>}
+                      <span className="text-amber-400 font-bold text-base" style={{ fontSize: `${donorsFontSize}px`, fontFamily: donorsFontFamily }}>{donor.diamonds} 💎</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* VISITOR SIDE */}
@@ -240,22 +282,68 @@ export const OverlayView: React.FC = () => {
                   </div>
                 ))}
               </div>
-              
+
               {/* Top Jugadores Visitor */}
-              <div className="flex flex-col w-full items-end" style={{ gap: `${donorsGap}px` }}>
-                <h3 className="font-sports text-white/80 text-xs tracking-widest uppercase mb-0.5 text-right">Top Jugadores</h3>
-                {topDonorsVisitor.map((donor, idx) => (
-                  <div key={donor.username} className={`flex items-center gap-3 p-2 rounded-lg border border-white/5 shadow-md ${donorsShowName ? 'w-full' : 'w-fit'}`} style={{ backgroundColor: `rgba(15, 23, 42, ${donorsBgOpacity})` }}>
-                    <span className="text-amber-400 font-bold text-base" style={{ fontSize: `${donorsFontSize}px`, fontFamily: donorsFontFamily }}>{donor.diamonds} 💎</span>
-                    {donorsShowName && <span className="text-white font-bold truncate flex-1 text-right text-base" style={{ fontSize: `${donorsFontSize}px`, fontFamily: donorsFontFamily }}>{donor.username}</span>}
-                    <img src={donor.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${donor.username}`} className="rounded-full border border-white/20" alt="avatar" style={{ width: `${donorsIconSize}px`, height: `${donorsIconSize}px` }} />
-                    <span className="text-amber-500 font-black text-lg w-5 text-right">#{idx + 1}</span>
-                  </div>
-                ))}
-              </div>
+              {(donorsDisplay !== 'pitch') && (
+                <div className="flex flex-col w-full items-end" style={{ gap: `${donorsGap}px` }}>
+                  <h3 className="font-sports text-white/80 text-xs tracking-widest uppercase mb-0.5 text-right">Top Jugadores</h3>
+                  {topDonorsVisitor.map((donor, idx) => (
+                    <div key={donor.username} className={`flex items-center gap-3 p-2 rounded-lg border border-white/5 shadow-md ${donorsShowName ? 'w-full' : 'w-fit'}`} style={{ backgroundColor: `rgba(15, 23, 42, ${donorsBgOpacity})` }}>
+                      <span className="text-amber-400 font-bold text-base" style={{ fontSize: `${donorsFontSize}px`, fontFamily: donorsFontFamily }}>{donor.diamonds} 💎</span>
+                      {donorsShowName && <span className="text-white font-bold truncate flex-1 text-right text-base" style={{ fontSize: `${donorsFontSize}px`, fontFamily: donorsFontFamily }}>{donor.username}</span>}
+                      <img src={donor.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${donor.username}`} className="rounded-full border border-white/20" alt="avatar" style={{ width: `${donorsIconSize}px`, height: `${donorsIconSize}px` }} />
+                      <span className="text-amber-500 font-black text-lg w-5 text-right">#{idx + 1}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
+
+        {/* PITCH MODE: Floating Top Donors */}
+        {donorsDisplay === 'pitch' && allTopDonors.length > 0 && (
+          <div className="absolute inset-0 z-5 pointer-events-none" style={{ top: '30%', bottom: '14%' }}>
+            <style>{`
+              @keyframes donor-float {
+                0%, 100% { transform: translate(-50%, -50%) translateY(0px); }
+                50% { transform: translate(-50%, -50%) translateY(-10px); }
+              }
+            `}</style>
+            {allTopDonors.map((donor, idx) => {
+              const pos = donorPositions[donor.username];
+              if (!pos) return null;
+              const isLocal = donor.teamId === localTeam?.id;
+              return (
+                <div
+                  key={donor.username}
+                  className="absolute flex flex-col items-center transition-all duration-15000 ease-in-out"
+                  style={{
+                    left: `${pos.x}%`,
+                    top: `${pos.y}%`,
+                    transform: 'translate(-50%, -50%)',
+                    animation: `donor-float ${2.5 + (idx * 0.3)}s ease-in-out infinite`,
+                    animationDelay: `${idx * 0.6}s`
+                  }}
+                >
+                  {idx === 0 && <span className="absolute -top-5 text-2xl z-10 drop-shadow-lg">👑</span>}
+                  <div className={`rounded-full border-[3px] shadow-lg ${idx === 0 ? 'border-yellow-400 w-14 h-14' : isLocal ? 'border-blue-400/70 w-11 h-11' : 'border-yellow-400/70 w-11 h-11'} bg-slate-800 flex items-center justify-center overflow-hidden`}>
+                    <img
+                      src={donor.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${donor.username}`}
+                      alt={donor.username}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  {donorsShowName && (
+                    <span className="text-white text-xs font-bold mt-1.5 px-2 py-0.5 rounded-full whitespace-nowrap" style={{ backgroundColor: `rgba(15, 23, 42, ${donorsBgOpacity})`, fontSize: `${Math.max(10, donorsFontSize - 2)}px`, fontFamily: donorsFontFamily }}>
+                      {donor.username}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* 2. SOCIAL ALERTS */}
         <div className={`flex w-full ${isVertical ? 'flex-col items-center justify-end gap-6 flex-1 mb-8' : 'justify-end items-end h-[680px]'}`}>
@@ -263,7 +351,7 @@ export const OverlayView: React.FC = () => {
 
           {/* Social alerts notification box + events floating tags */}
           <div className={`flex flex-col gap-4 ${isVertical ? 'items-center mt-2 w-full order-first mb-4' : 'items-end self-end mb-4 mr-2'}`}>
-            
+
             {/* Event Glowing Tags */}
             <div className={`flex gap-2 ${isVertical ? 'flex-row flex-wrap justify-center' : 'flex-col items-end'}`}>
               {isMultiplier && (
@@ -289,11 +377,11 @@ export const OverlayView: React.FC = () => {
       </div>
 
       {/* --- DONOR CENTER SCREEN ALERT --- */}
-      <div 
+      <div
         className={`absolute left-1/2 z-40 transition-all duration-500 pointer-events-none ${lastDonor ? 'opacity-100' : 'opacity-0'}`}
-        style={{ 
+        style={{
           top: `${settings.donor_card_y || '50'}%`,
-          transform: `translate(-50%, -50%) scale(${(parseInt(settings.donor_card_scale || '100', 10) / 100) * (lastDonor ? 1 : 0.5)})` 
+          transform: `translate(-50%, -50%) scale(${(parseInt(settings.donor_card_scale || '100', 10) / 100) * (lastDonor ? 1 : 0.5)})`
         }}
       >
         {lastDonor && (
@@ -317,7 +405,7 @@ export const OverlayView: React.FC = () => {
               <img src={lastLiker.avatar} alt="avatar" className="w-10 h-10 rounded-full border-2 border-pink-500 shadow-md" />
               <div className="flex items-center gap-2">
                 <span className="text-xl font-black text-white">{lastLiker.username}</span>
-                <span className="text-sm font-bold text-pink-400 uppercase tracking-wider">envió likes!</span>
+                <span className="text-sm font-bold text-pink-400 uppercase tracking-wider">Está en la tribuna</span>
               </div>
               <Heart className="w-8 h-8 text-pink-500 fill-pink-500 animate-bounce" />
             </div>
@@ -326,18 +414,18 @@ export const OverlayView: React.FC = () => {
 
         {/* Progress Bar Container */}
         <div className={`w-full relative h-10 bg-slate-950/80 border border-white/20 rounded-full shadow-2xl p-1 flex items-center ${likeCelebration ? 'animate-pulse shadow-[0_0_40px_rgba(236,72,153,0.8)]' : ''}`}>
-          
+
           {rewardTimeLeft > 0 ? (
             // Active Reward Countdown View
             <div className="w-full flex items-center justify-center gap-3">
               {upcomingReward === 'event_gold_goal' && <Trophy className="w-6 h-6 text-amber-500 text-neon-gold" />}
               {upcomingReward === 'event_multiplier' && <Sparkles className="w-6 h-6 text-yellow-400 fill-yellow-400" />}
               {upcomingReward === 'event_turbo' && <Zap className="w-6 h-6 text-emerald-400 fill-emerald-400" />}
-              
+
               <span className="font-sports font-black text-2xl text-white drop-shadow-md">
                 {formatTime(rewardTimeLeft)}
               </span>
-              
+
               <span className="font-sports font-bold text-sm text-amber-400 uppercase tracking-wide ml-2">
                 {upcomingReward === 'event_gold_goal' && 'GOL DE ORO ACTIVO'}
                 {upcomingReward === 'event_multiplier' && 'MULTIPLICADOR X2 ACTIVO'}
@@ -349,19 +437,19 @@ export const OverlayView: React.FC = () => {
             <>
               <div className="absolute left-4 z-10 flex flex-col justify-center drop-shadow-md">
                 <div className="font-sports font-black text-sm text-white/90 uppercase flex items-center gap-1.5">
-                   <Heart className="w-4 h-4 text-pink-500 fill-pink-500" /> META DE LIKES
+                  <Heart className="w-4 h-4 text-pink-500 fill-pink-500" /> META DE LIKES
                 </div>
                 <span className="text-[9px] text-white/60 font-bold uppercase tracking-wider -mt-0.5 ml-5">
                   (Para adquirir una recompensa)
                 </span>
               </div>
-              
+
               <div className="absolute right-14 z-10 font-sports font-black text-sm text-white/90 drop-shadow-md">
-                 {`${likeProgress}/10K`}
+                {`${likeProgress}/10K`}
               </div>
 
               {/* The fill */}
-              <div 
+              <div
                 className="h-full bg-gradient-to-r from-pink-600 via-purple-500 to-indigo-500 rounded-full transition-all duration-300 relative shadow-[0_0_20px_rgba(236,72,153,0.5)] flex justify-end items-center"
                 style={{ width: `${(likeProgress / 10000) * 100}%` }}
               >
@@ -394,14 +482,14 @@ export const OverlayView: React.FC = () => {
       {matchState === 'celebrating' && (
         <div className="absolute inset-0 z-40 bg-slate-950/70 backdrop-blur-sm flex flex-col justify-center items-center pointer-events-none animate-pulse">
           <div className="flex flex-col items-center justify-center max-w-[1200px] text-center p-10 relative">
-            
+
             {/* Flash spotlight background */}
             <div className="absolute -z-10 h-[500px] w-[500px] bg-amber-500/20 rounded-full blur-[120px] animate-ping"></div>
 
             <div className="text-8xl select-none select-none select-none animate-bounce-slow">
               ⚽🔥⚽
             </div>
-            
+
             <h1 className="font-sports font-black text-neon-gold text-[120px] leading-none uppercase text-amber-500 mt-4 tracking-tighter scale-110">
               GOOOOOOOOOL
             </h1>
@@ -419,7 +507,7 @@ export const OverlayView: React.FC = () => {
       {matchState === 'finished' && (
         <div className="absolute inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex flex-col justify-center items-center pointer-events-none">
           <div className="flex flex-col items-center justify-center max-w-[1200px] text-center p-10 relative">
-            
+
             {/* Spinning Golden Rays */}
             <div className="absolute -z-10 h-[800px] w-[800px] opacity-15 animate-spin-slow">
               <svg viewBox="0 0 100 100" className="w-full h-full text-yellow-500 fill-current">
@@ -456,7 +544,7 @@ export const OverlayView: React.FC = () => {
                 <div className="text-6xl mb-4 p-8 bg-slate-900/80 rounded-full border-4 border-amber-500 shadow-[0_0_50px_rgba(245,158,11,0.5)]">
                   {localScore >= visitorScore ? localTeam?.flag : visitorTeam?.flag}
                 </div>
-                
+
                 <h2 className="font-sports font-black text-6xl text-white uppercase tracking-widest mb-2 drop-shadow-lg text-center">
                   {localScore >= visitorScore ? localTeam?.name : visitorTeam?.name}
                 </h2>
@@ -470,10 +558,10 @@ export const OverlayView: React.FC = () => {
                     <div key={donor.username} className={`flex flex-col items-center bg-gradient-to-b from-slate-800 to-slate-950 p-6 rounded-2xl border border-white/10 shadow-2xl ${idx === 0 ? 'scale-110 -translate-y-4 border-yellow-500/50' : 'scale-95'}`}>
                       <div className="relative mb-4">
                         {idx === 0 && <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-4xl">👑</div>}
-                        <img 
-                          src={donor.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${donor.username}`} 
-                          alt="avatar" 
-                          className={`rounded-full border-4 ${idx === 0 ? 'w-24 h-24 border-yellow-500' : 'w-20 h-20 border-slate-400'}`} 
+                        <img
+                          src={donor.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${donor.username}`}
+                          alt="avatar"
+                          className={`rounded-full border-4 ${idx === 0 ? 'w-24 h-24 border-yellow-500' : 'w-20 h-20 border-slate-400'}`}
                         />
                       </div>
                       <span className="font-sports font-bold text-xl text-white truncate max-w-[150px]">{donor.username}</span>

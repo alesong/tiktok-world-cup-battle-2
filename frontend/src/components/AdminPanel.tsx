@@ -729,6 +729,19 @@ export const AdminPanel: React.FC = () => {
                         <option value="false">No (Solo Avatar)</option>
                       </select>
                     </div>
+                    <div className="col-span-2">
+                      <label className="block text-[10px] uppercase text-slate-400 font-semibold mb-1">
+                        Mostrar en
+                      </label>
+                      <select
+                        value={settings.top_donors_display || 'list'}
+                        onChange={(e) => handleFieldChange('top_donors_display', e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-100 font-bold"
+                      >
+                        <option value="list">Lista lateral</option>
+                        <option value="pitch">Dentro de la cancha</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 
