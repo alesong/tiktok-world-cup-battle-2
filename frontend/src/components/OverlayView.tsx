@@ -246,15 +246,20 @@ export const OverlayView: React.FC = () => {
             <div className="flex flex-col gap-3 items-start w-[450px]">
               {/* Gifts */}
               <div className="flex gap-2" style={{ gap: `${8 * giftCardScale}px` }}>
-                {giftListLocal.map(gift => (
-                  <div key={gift.name} style={{ transform: `scale(${giftCardScale})` }}>
-                    <div className={`flex flex-col items-center bg-slate-900/80 p-2 rounded-xl border ${lastDonor?.giftName === gift.name ? 'border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.9)] scale-110 z-10' : 'border-white/10 shadow-xl'} min-w-[80px] transition-all duration-300`}>
+                {giftListLocal.map(gift => {
+                  const isHighlighted = lastDonor?.giftName === gift.name;
+                  return (
+                    <div
+                      key={gift.name}
+                      style={{ transform: `scale(${giftCardScale * (isHighlighted ? 1.1 : 1)})` }}
+                      className={`flex flex-col items-center bg-slate-900/80 p-2 rounded-xl border min-w-[80px] transition-all duration-300 ${isHighlighted ? 'border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.9)] z-10' : 'border-white/10 shadow-xl'}`}
+                    >
                       <span className="text-3xl mb-1 drop-shadow-lg">{gift.icon}</span>
                       <span className="font-sports font-bold text-white text-xs tracking-wider uppercase text-center">{gift.value} PASOS</span>
                       <div className="text-amber-500 font-black text-2xl animate-pulse mt-0.5">➔</div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Top Jugadores Local */}
@@ -277,15 +282,20 @@ export const OverlayView: React.FC = () => {
             <div className="flex flex-col gap-3 items-end w-[450px]">
               {/* Gifts */}
               <div className="flex gap-2" style={{ gap: `${8 * giftCardScale}px` }}>
-                {giftListVisitor.map(gift => (
-                  <div key={gift.name} style={{ transform: `scale(${giftCardScale})` }}>
-                    <div className={`flex flex-col items-center bg-slate-900/80 p-2 rounded-xl border ${lastDonor?.giftName === gift.name ? 'border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.9)] scale-110 z-10' : 'border-white/10 shadow-xl'} min-w-[80px] transition-all duration-300`}>
+                {giftListVisitor.map(gift => {
+                  const isHighlighted = lastDonor?.giftName === gift.name;
+                  return (
+                    <div
+                      key={gift.name}
+                      style={{ transform: `scale(${giftCardScale * (isHighlighted ? 1.1 : 1)})` }}
+                      className={`flex flex-col items-center bg-slate-900/80 p-2 rounded-xl border min-w-[80px] transition-all duration-300 ${isHighlighted ? 'border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.9)] z-10' : 'border-white/10 shadow-xl'}`}
+                    >
                       <span className="text-3xl mb-1 drop-shadow-lg">{gift.icon}</span>
                       <span className="font-sports font-bold text-white text-xs tracking-wider uppercase text-center">{gift.value} PASOS</span>
-                      <div className="text-amber-500 font-black text-2xl animate-pulse mt-0.5">←</div>
+                      <div className="text-amber-500 font-black text-2xl animate-pulse mt-0.5">➔</div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Top Jugadores Visitor */}
