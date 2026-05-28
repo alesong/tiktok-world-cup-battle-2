@@ -45,6 +45,7 @@ export interface GameSettings {
   vol_band?: string;
   donor_card_y?: string;
   donor_card_scale?: string;
+  gift_card_scale?: string;
   player_scale?: string;
   event_multiplier: string;
   event_gold_goal: string;

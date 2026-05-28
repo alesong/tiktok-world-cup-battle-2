@@ -1141,6 +1141,23 @@ export const AdminPanel: React.FC = () => {
                   </button>
                 </div>
 
+                {/* Gift Scale Control */}
+                <div className="flex items-center gap-3 text-xs">
+                  <label className="block text-[10px] uppercase text-slate-400 font-semibold whitespace-nowrap">
+                    Tamaño Regalos (%)
+                  </label>
+                  <input
+                    type="range"
+                    min="50"
+                    max="200"
+                    step="5"
+                    value={settings.gift_card_scale || '100'}
+                    onChange={(e) => handleFieldChange('gift_card_scale', e.target.value)}
+                    className="w-full accent-amber-500 bg-slate-900 h-1.5 rounded-lg cursor-pointer"
+                  />
+                  <span className="font-bold text-amber-500 min-w-[3ch] text-right">{settings.gift_card_scale || '100'}%</span>
+                </div>
+
                 {/* Table grid */}
                 <div className="max-h-[350px] overflow-y-auto border border-slate-800 rounded-lg">
                   <table className="w-full text-xs text-left border-collapse">

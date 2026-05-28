@@ -107,6 +107,7 @@ export const OverlayView: React.FC = () => {
   const topDonorsLocal = donors.filter(d => d.teamId === localTeam?.id).slice(0, donorsCount);
   const topDonorsVisitor = donors.filter(d => d.teamId === visitorTeam?.id).slice(0, donorsCount);
   const donorsDisplay = settings.top_donors_display || 'list';
+  const giftCardScale = parseInt(settings.gift_card_scale || '100', 10) / 100;
 
   const allTopDonors = [...topDonorsLocal, ...topDonorsVisitor];
 
@@ -244,12 +245,14 @@ export const OverlayView: React.FC = () => {
             {/* LOCAL SIDE */}
             <div className="flex flex-col gap-3 items-start w-[450px]">
               {/* Gifts */}
-              <div className="flex gap-2">
+              <div className="flex gap-2" style={{ gap: `${8 * giftCardScale}px` }}>
                 {giftListLocal.map(gift => (
-                  <div key={gift.name} className={`flex flex-col items-center bg-slate-900/80 p-2 rounded-xl border ${lastDonor?.giftName === gift.name ? 'border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.9)] scale-110 z-10' : 'border-white/10 shadow-xl'} min-w-[80px] transition-all duration-300`}>
-                    <span className="text-3xl mb-1 drop-shadow-lg">{gift.icon}</span>
-                    <span className="font-sports font-bold text-white text-xs tracking-wider uppercase text-center">{gift.value} PASOS</span>
-                    <div className="text-amber-500 font-black text-2xl animate-pulse mt-0.5">➔</div>
+                  <div key={gift.name} style={{ transform: `scale(${giftCardScale})` }}>
+                    <div className={`flex flex-col items-center bg-slate-900/80 p-2 rounded-xl border ${lastDonor?.giftName === gift.name ? 'border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.9)] scale-110 z-10' : 'border-white/10 shadow-xl'} min-w-[80px] transition-all duration-300`}>
+                      <span className="text-3xl mb-1 drop-shadow-lg">{gift.icon}</span>
+                      <span className="font-sports font-bold text-white text-xs tracking-wider uppercase text-center">{gift.value} PASOS</span>
+                      <div className="text-amber-500 font-black text-2xl animate-pulse mt-0.5">➔</div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -273,12 +276,14 @@ export const OverlayView: React.FC = () => {
             {/* VISITOR SIDE */}
             <div className="flex flex-col gap-3 items-end w-[450px]">
               {/* Gifts */}
-              <div className="flex gap-2">
+              <div className="flex gap-2" style={{ gap: `${8 * giftCardScale}px` }}>
                 {giftListVisitor.map(gift => (
-                  <div key={gift.name} className={`flex flex-col items-center bg-slate-900/80 p-2 rounded-xl border ${lastDonor?.giftName === gift.name ? 'border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.9)] scale-110 z-10' : 'border-white/10 shadow-xl'} min-w-[80px] transition-all duration-300`}>
-                    <span className="text-3xl mb-1 drop-shadow-lg">{gift.icon}</span>
-                    <span className="font-sports font-bold text-white text-xs tracking-wider uppercase text-center">{gift.value} PASOS</span>
-                    <div className="text-amber-500 font-black text-2xl animate-pulse mt-0.5">←</div>
+                  <div key={gift.name} style={{ transform: `scale(${giftCardScale})` }}>
+                    <div className={`flex flex-col items-center bg-slate-900/80 p-2 rounded-xl border ${lastDonor?.giftName === gift.name ? 'border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.9)] scale-110 z-10' : 'border-white/10 shadow-xl'} min-w-[80px] transition-all duration-300`}>
+                      <span className="text-3xl mb-1 drop-shadow-lg">{gift.icon}</span>
+                      <span className="font-sports font-bold text-white text-xs tracking-wider uppercase text-center">{gift.value} PASOS</span>
+                      <div className="text-amber-500 font-black text-2xl animate-pulse mt-0.5">←</div>
+                    </div>
                   </div>
                 ))}
               </div>
