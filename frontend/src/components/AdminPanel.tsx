@@ -1075,7 +1075,7 @@ export const AdminPanel: React.FC = () => {
                       }}
                       className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-100 focus:outline-none"
                     >
-                      {TIKTOK_GIFTS.filter(g => g.defaultPrice < 501).map(g => (
+                      {TIKTOK_GIFTS.map(g => (
                         <option key={g.name} value={g.name}>{g.icon} {g.name} ({g.defaultPrice}💎)</option>
                       ))}
                     </select>
@@ -1120,7 +1120,7 @@ export const AdminPanel: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800">
-                      {giftList.map(item => (
+                      {[...giftList].reverse().map(item => (
                         <tr key={item.name} className="hover:bg-slate-900/30 text-slate-200">
                           <td className="px-4 py-2.5 font-semibold flex items-center gap-2">
                             <span>{item.icon}</span> <span>{item.name}</span>
