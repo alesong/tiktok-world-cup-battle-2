@@ -22,6 +22,8 @@ export class TikTokLiveService {
   private reconnectAttempts: number = 0;
   private maxReconnectAttempts: number = 15;
   private lastError: string = '';
+  private recentFollows: Map<string, number> = new Map();
+  private readonly followDedupMs: number = 10000;
 
   constructor(io: Server) {
     this.io = io;
@@ -109,6 +111,7 @@ export class TikTokLiveService {
       });
 
       this.tiktokConnection.on('follow', (data: any) => {
+        console.log(`FOLLOW RECEIVED: ${data.uniqueId}`);
         this.handleFollow({
           username: data.uniqueId,
           avatar: data.profilePictureUrl || ''
@@ -407,6 +410,15 @@ export class TikTokLiveService {
   public async handleFollow(event: { username: string; avatar: string }) {
     const matchStateRow = await db.get("SELECT value FROM settings WHERE key = 'match_state'");
     if (!matchStateRow || matchStateRow.value !== 'playing') return;
+
+    // Deduplicate: skip if same user followed within the last N ms
+    const now = Date.now();
+    const last = this.recentFollows.get(event.username);
+    if (last && now - last < this.followDedupMs) {
+      console.log(`[DEDUP] Follow de ${event.username} ignorado (repetido en ${now - last}ms)`);
+      return;
+    }
+    this.recentFollows.set(event.username, now);
 
     // Follow does NOT advance the ball - just registers the donor
     const teamIdRow = await db.get("SELECT value FROM settings WHERE key = 'local_team_id'");

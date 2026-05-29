@@ -294,15 +294,36 @@ export const AdminPanel: React.FC = () => {
       const data = await response.json();
       if (data.success) {
         setTimeout(fetchSettings, 1000);
+        if (!connect) {
+          setIsTikTokConnecting(false);
+        }
       } else {
         alert(data.message || 'Error al conectar/desconectar TikTok');
+        setIsTikTokConnecting(false);
       }
     } catch (err) {
       console.error(err);
-    } finally {
       setIsTikTokConnecting(false);
     }
   };
+
+  // Clear connecting state when tiktokState confirms connection or error
+  useEffect(() => {
+    if (isTikTokConnecting) {
+      if (tiktokState.connected) {
+        setIsTikTokConnecting(false);
+      } else if (tiktokState.error && !tiktokState.reconnecting) {
+        setIsTikTokConnecting(false);
+      }
+    }
+  }, [tiktokState]);
+
+  // Safety timeout for connecting state (15s)
+  useEffect(() => {
+    if (!isTikTokConnecting) return;
+    const timer = setTimeout(() => setIsTikTokConnecting(false), 15000);
+    return () => clearTimeout(timer);
+  }, [isTikTokConnecting]);
 
   // Simulator API Triggers
   const simulateEvent = async (body: Record<string, any>) => {
@@ -443,11 +464,16 @@ export const AdminPanel: React.FC = () => {
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleTikTokConnect(true)}
-                    disabled={tiktokState.connected || isTikTokConnecting}
-                    className="flex-1 bg-green-700/20 text-green-400 hover:bg-green-700/40 border border-green-600/30 font-bold uppercase text-[10px] tracking-wider py-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5"
+                    disabled={tiktokState.connected || isTikTokConnecting || tiktokState.reconnecting}
+                    className="flex-1 font-bold uppercase text-[10px] tracking-wider py-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5 border disabled:cursor-not-allowed disabled:opacity-60"
+                    style={{
+                      backgroundColor: tiktokState.connected ? 'rgba(34,197,94,0.15)' : isTikTokConnecting || tiktokState.reconnecting ? 'rgba(234,179,8,0.15)' : 'rgba(34,197,94,0.12)',
+                      color: tiktokState.connected ? '#22c55e' : isTikTokConnecting || tiktokState.reconnecting ? '#eab308' : '#22c55e',
+                      borderColor: tiktokState.connected ? 'rgba(34,197,94,0.4)' : isTikTokConnecting || tiktokState.reconnecting ? 'rgba(234,179,8,0.4)' : 'rgba(34,197,94,0.3)'
+                    }}
                   >
-                    {isTikTokConnecting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                    {isTikTokConnecting ? 'Conectando...' : 'Conectar Live'}
+                    {(isTikTokConnecting || tiktokState.reconnecting) ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                    {isTikTokConnecting ? 'Conectando...' : tiktokState.reconnecting ? 'Reconectando...' : tiktokState.connected ? 'Conectado' : 'Conectar Live'}
                   </button>
                   <button
                     onClick={() => handleTikTokConnect(false)}
@@ -823,6 +849,19 @@ export const AdminPanel: React.FC = () => {
                       >
                         <option value="true">Sí (Nombre + Avatar)</option>
                         <option value="false">No (Solo Avatar)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] uppercase text-slate-400 font-semibold mb-1">
+                        Mostrar Diamantes
+                      </label>
+                      <select
+                        value={settings.top_donors_show_diamonds ?? 'true'}
+                        onChange={(e) => handleFieldChange('top_donors_show_diamonds', e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-100 font-bold"
+                      >
+                        <option value="true">Sí</option>
+                        <option value="false">No</option>
                       </select>
                     </div>
                     <div className="col-span-2">

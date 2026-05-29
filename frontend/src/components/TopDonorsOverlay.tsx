@@ -12,6 +12,7 @@ export const TopDonorsOverlay: React.FC = () => {
   const fontFamily = settings.top_donors_font_family || 'Arial';
   const bgOpacity = parseInt(settings.top_donors_bg_opacity || '60', 10) / 100;
   const showName = settings.top_donors_show_name !== 'false';
+  const showDiamonds = settings.top_donors_show_diamonds !== 'false';
 
   useEffect(() => {
     initSocket();
@@ -62,10 +63,12 @@ export const TopDonorsOverlay: React.FC = () => {
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-1">
-                  <span className="font-black text-amber-400" style={{ fontSize: `${fontSize}px`, fontFamily }}>{d.diamonds}</span>
-                  <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400 animate-spin-slow" />
-                </div>
+                {showDiamonds && (
+                  <div className="flex items-center gap-1">
+                    <span className="font-black text-amber-400" style={{ fontSize: `${fontSize}px`, fontFamily }}>{d.diamonds}</span>
+                    <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400 animate-spin-slow" />
+                  </div>
+                )}
               </div>
             ))
           )}

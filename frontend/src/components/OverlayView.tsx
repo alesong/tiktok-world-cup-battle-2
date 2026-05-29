@@ -103,13 +103,14 @@ export const OverlayView: React.FC = () => {
   const donorsFontFamily = settings.top_donors_font_family || 'Arial';
   const donorsBgOpacity = parseInt(settings.top_donors_bg_opacity || '60', 10) / 100;
   const donorsShowName = settings.top_donors_show_name !== 'false';
+  const donorsShowDiamonds = settings.top_donors_show_diamonds !== 'false';
 
   const topDonorsLocal = donors.filter(d => d.teamId === localTeam?.id).slice(0, donorsCount);
   const topDonorsVisitor = donors.filter(d => d.teamId === visitorTeam?.id).slice(0, donorsCount);
   const donorsDisplay = settings.top_donors_display || 'list';
   const giftCardScale = parseInt(settings.gift_card_scale || '100', 10) / 100;
 
-  const allTopDonors = [...topDonorsLocal, ...topDonorsVisitor];
+  const allTopDonors = [...topDonorsLocal, ...topDonorsVisitor].sort((a, b) => b.diamonds - a.diamonds);
 
   // Random positions for pitch display mode
   const [donorPositions, setDonorPositions] = useState<Record<string, { x: number; y: number }>>({});
@@ -271,7 +272,7 @@ export const OverlayView: React.FC = () => {
                       <span className="text-amber-500 font-black text-lg w-5">#{idx + 1}</span>
                       <img src={donor.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${donor.username}`} className="rounded-full border border-white/20" alt="avatar" style={{ width: `${donorsIconSize}px`, height: `${donorsIconSize}px` }} />
                       {donorsShowName && <span className="text-white font-bold truncate flex-1 text-base" style={{ fontSize: `${donorsFontSize}px`, fontFamily: donorsFontFamily }}>{donor.username}</span>}
-                      <span className="text-amber-400 font-bold text-base" style={{ fontSize: `${donorsFontSize}px`, fontFamily: donorsFontFamily }}>{donor.diamonds} 💎</span>
+                      {donorsShowDiamonds && <span className="text-amber-400 font-bold text-base" style={{ fontSize: `${donorsFontSize}px`, fontFamily: donorsFontFamily }}>{donor.diamonds} 💎</span>}
                     </div>
                   ))}
                 </div>
@@ -304,7 +305,7 @@ export const OverlayView: React.FC = () => {
                   <h3 className="font-sports text-white/80 text-xs tracking-widest uppercase mb-0.5 text-right">Top Jugadores</h3>
                   {topDonorsVisitor.map((donor, idx) => (
                     <div key={donor.username} className={`flex items-center gap-3 p-2 rounded-lg border border-white/5 shadow-md ${donorsShowName ? 'w-full' : 'w-fit'}`} style={{ backgroundColor: `rgba(15, 23, 42, ${donorsBgOpacity})` }}>
-                      <span className="text-amber-400 font-bold text-base" style={{ fontSize: `${donorsFontSize}px`, fontFamily: donorsFontFamily }}>{donor.diamonds} 💎</span>
+                      {donorsShowDiamonds && <span className="text-amber-400 font-bold text-base" style={{ fontSize: `${donorsFontSize}px`, fontFamily: donorsFontFamily }}>{donor.diamonds} 💎</span>}
                       {donorsShowName && <span className="text-white font-bold truncate flex-1 text-right text-base" style={{ fontSize: `${donorsFontSize}px`, fontFamily: donorsFontFamily }}>{donor.username}</span>}
                       <img src={donor.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${donor.username}`} className="rounded-full border border-white/20" alt="avatar" style={{ width: `${donorsIconSize}px`, height: `${donorsIconSize}px` }} />
                       <span className="text-amber-500 font-black text-lg w-5 text-right">#{idx + 1}</span>
@@ -341,7 +342,7 @@ export const OverlayView: React.FC = () => {
                     animationDelay: `${idx * 0.6}s`
                   }}
                 >
-                  {idx === 0 && <span className="absolute -top-5 text-2xl z-10 drop-shadow-lg">👑</span>}
+                  {idx === 0 && <span className="absolute -top-11 text-5xl z-10 drop-shadow-lg">👑</span>}
                   <div className={`rounded-full border-[3px] shadow-lg ${idx === 0 ? 'border-yellow-400 w-14 h-14' : isLocal ? 'border-blue-400/70 w-11 h-11' : 'border-yellow-400/70 w-11 h-11'} bg-slate-800 flex items-center justify-center overflow-hidden`}>
                     <img
                       src={donor.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${donor.username}`}
@@ -352,6 +353,11 @@ export const OverlayView: React.FC = () => {
                   {donorsShowName && (
                     <span className="text-white text-xs font-bold mt-1.5 px-2 py-0.5 rounded-full whitespace-nowrap" style={{ backgroundColor: `rgba(15, 23, 42, ${donorsBgOpacity})`, fontSize: `${Math.max(10, donorsFontSize - 2)}px`, fontFamily: donorsFontFamily }}>
                       {donor.username}
+                    </span>
+                  )}
+                  {donorsShowDiamonds && (
+                    <span className="text-amber-400 text-xs font-bold mt-0.5 px-2 py-0.5 rounded-full whitespace-nowrap" style={{ backgroundColor: `rgba(15, 23, 42, ${donorsBgOpacity})`, fontSize: `${Math.max(10, donorsFontSize - 3)}px`, fontFamily: donorsFontFamily }}>
+                      {donor.diamonds} 💎
                     </span>
                   )}
                 </div>
