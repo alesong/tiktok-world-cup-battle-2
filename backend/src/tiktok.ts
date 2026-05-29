@@ -1,7 +1,6 @@
 import { Server } from 'socket.io';
-import * as db from './database.js';
+import { supabase } from './database.js';
 
-// Try loading tiktok-live-connector defensively
 let TikTokConnectorClass: any = null;
 
 async function loadTikTokConnector() {
@@ -12,6 +11,15 @@ async function loadTikTokConnector() {
   } catch (e) {
     console.log('tiktok-live-connector not pre-installed or failed to load. Operating in Simulator-Only mode.');
   }
+}
+
+async function getSettingValue(key: string): Promise<string | null> {
+  const { data } = await supabase.from('twc_settings').select('value').eq('key', key).single();
+  return data?.value ?? null;
+}
+
+async function updateSetting(key: string, value: string) {
+  await supabase.from('twc_settings').update({ value }).eq('key', key);
 }
 
 export class TikTokLiveService {
@@ -37,7 +45,6 @@ export class TikTokLiveService {
     });
   }
 
-  // Connect to a real TikTok live stream
   public connect(username: string) {
     if (!TikTokConnectorClass) {
       console.warn('Cannot connect to real TikTok: tiktok-live-connector module is not available.');
@@ -46,8 +53,6 @@ export class TikTokLiveService {
 
     try {
       this.clearReconnect();
-
-      // Set username BEFORE disconnecting to prevent stale disconnected event
       this.activeUsername = username;
 
       if (this.tiktokConnection) {
@@ -81,7 +86,6 @@ export class TikTokLiveService {
 
       const connectionPromise = this.tiktokConnection.connect();
 
-      // Bind events BEFORE connect resolves (the connector buffers if needed)
       this.tiktokConnection.on('gift', (data: any) => {
         console.log('GIFT RECEIVED:', data.uniqueId, data.giftName);
         this.handleGift({
@@ -125,7 +129,6 @@ export class TikTokLiveService {
         });
       });
 
-      // Handle graceful disconnect (connection lost after being connected)
       this.tiktokConnection.on('disconnected', () => {
         console.log('TikTok Live connection lost (disconnected event)');
         this.tiktokConnection = null;
@@ -134,14 +137,12 @@ export class TikTokLiveService {
         this.scheduleReconnect();
       });
 
-      // Handle stream end (broadcaster stopped streaming)
       if (this.tiktokConnection.on) {
         this.tiktokConnection.on('streamEnd', () => {
           console.log('TikTok Live stream ended');
           this.tiktokConnection = null;
           this.lastError = 'stream_ended';
           this.emitState({ connected: false, error: 'stream_ended', reconnecting: false });
-          // Try a few times in case they go live again
           if (this.reconnectAttempts < 3) {
             this.scheduleReconnect();
           }
@@ -167,7 +168,6 @@ export class TikTokLiveService {
           reconnecting: false
         });
 
-        // Retry a few times for transient errors, stop for offline
         if (!isOffline && this.reconnectAttempts < 5) {
           this.scheduleReconnect();
         }
@@ -183,7 +183,7 @@ export class TikTokLiveService {
     this.clearReconnect();
 
     if (!this.activeUsername) return;
-    if (this.tiktokConnection) return; // Already have a connection, no need to reconnect
+    if (this.tiktokConnection) return;
 
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
       console.log('Max reconnect attempts reached for TikTok');
@@ -220,7 +220,6 @@ export class TikTokLiveService {
 
   public disconnect() {
     this.clearReconnect();
-    // Clear username BEFORE disconnecting so disconnected event won't trigger reconnect
     this.activeUsername = '';
     if (this.tiktokConnection) {
       const oldConn = this.tiktokConnection;
@@ -245,27 +244,19 @@ export class TikTokLiveService {
 
   // --- GAME LOGIC PIPELINE ---
 
-  // Handle a gift donation
   public async handleGift(event: { username: string; giftName: string; count: number; avatar: string }) {
-    // 1. Get Settings
-    const matchStateRow = await db.get("SELECT value FROM settings WHERE key = 'match_state'");
-    if (!matchStateRow || matchStateRow.value !== 'playing') {
-      // Ignore donations if game not in progress
-      return;
-    }
+    const matchState = await getSettingValue('match_state');
+    if (matchState !== 'playing') return;
 
-    const giftValuesRow = await db.get("SELECT value FROM settings WHERE key = 'gift_values'");
-    const giftValues = JSON.parse(giftValuesRow?.value || '{}');
+    const giftValuesRaw = await getSettingValue('gift_values');
+    const giftValues = JSON.parse(giftValuesRaw || '{}');
 
-    // 2. Calculate Diamond Value
     const giftData = giftValues[event.giftName];
     const baseValue = typeof giftData === 'number' ? giftData : (giftData?.value || 1);
-    
-    const multiplierRow = await db.get("SELECT value FROM settings WHERE key = 'event_multiplier'");
-    const multiplier = parseInt(multiplierRow?.value || '1', 10);
+
+    const multiplier = parseInt(await getSettingValue('event_multiplier') || '1', 10);
     const totalDiamonds = baseValue * event.count * multiplier;
 
-    // 3. Determine Team supported
     let teamSide: 'local' | 'visitor' = 'local';
     if (giftData && giftData.team) {
       teamSide = giftData.team;
@@ -278,29 +269,29 @@ export class TikTokLiveService {
       }
     }
 
-    const teamIdRow = await db.get(`SELECT value FROM settings WHERE key = '${teamSide}_team_id'`);
-    const teamId = teamIdRow?.value || (teamSide === 'local' ? 'ARG' : 'BRA');
+    const teamId = await getSettingValue(`${teamSide}_team_id`) || (teamSide === 'local' ? 'ARG' : 'BRA');
 
-    // 4. Update Donors List
-    await db.run(`
-      INSERT INTO donors (username, diamonds, teamId, avatar)
-      VALUES (?, ?, ?, ?)
-      ON CONFLICT(username) DO UPDATE SET
-        diamonds = diamonds + excluded.diamonds,
-        teamId = excluded.teamId,
-        avatar = excluded.avatar
-    `, [event.username, totalDiamonds, teamId, event.avatar]);
+    // Upsert donor with diamonds increment
+    const { data: existingDonor } = await supabase.from('twc_donors').select('diamonds').eq('username', event.username).single();
+    if (existingDonor) {
+      await supabase.from('twc_donors').update({
+        diamonds: existingDonor.diamonds + totalDiamonds,
+        teamId,
+        avatar: event.avatar
+      }).eq('username', event.username);
+    } else {
+      await supabase.from('twc_donors').insert({
+        username: event.username,
+        diamonds: totalDiamonds,
+        teamId,
+        avatar: event.avatar
+      });
+    }
 
-    // 5. Update Ball Progress
-    const progressRow = await db.get("SELECT value FROM settings WHERE key = 'ball_progress'");
-    let progress = parseInt(progressRow?.value || '0', 10);
+    let progress = parseInt(await getSettingValue('ball_progress') || '0', 10);
+    const goalDistance = parseInt(await getSettingValue('goal_distance_diamonds') || '200', 10);
 
-    const goalDistanceRow = await db.get("SELECT value FROM settings WHERE key = 'goal_distance_diamonds'");
-    const goalDistance = parseInt(goalDistanceRow?.value || '200', 10);
-
-    // Apply Turbo Event (Turbo doubles ball movement speed)
-    const turboRow = await db.get("SELECT value FROM settings WHERE key = 'event_turbo'");
-    const isTurbo = turboRow?.value === 'true';
+    const isTurbo = (await getSettingValue('event_turbo')) === 'true';
     const movementAmount = totalDiamonds * (isTurbo ? 2 : 1);
 
     if (teamSide === 'local') {
@@ -309,7 +300,6 @@ export class TikTokLiveService {
       progress -= movementAmount;
     }
 
-    // 6. Check for Goals
     let isGoal = false;
     let scoringTeam: 'local' | 'visitor' = 'local';
 
@@ -323,9 +313,8 @@ export class TikTokLiveService {
       progress = 0;
     }
 
-    await db.run("UPDATE settings SET value = ? WHERE key = 'ball_progress'", [progress.toString()]);
+    await updateSetting('ball_progress', progress.toString());
 
-    // Emit event immediately
     this.io.emit('game_action', {
       type: 'gift',
       username: event.username,
@@ -337,20 +326,14 @@ export class TikTokLiveService {
       avatar: event.avatar
     });
 
-    // Handle Goal Celebration
     if (isGoal) {
       await this.handleGoal(scoringTeam);
     } else {
-      // Broadcast current donors top 10
       await this.broadcastDonors();
     }
   }
 
   public async handleLike(event: { username: string; likeCount: number; avatar: string }) {
-    // We allow likes to be processed regardless of match_state so the progress bar never freezes
-
-    // Likes give a minor boost (100 likes = 1 diamond equivalent push to a random/last supported team, or simply sparks)
-    // Spawn soccer particles in the overlay
     this.io.emit('game_action', {
       type: 'like',
       username: event.username,
@@ -359,41 +342,42 @@ export class TikTokLiveService {
     });
   }
 
-  // Handle Shares
   public async handleShare(event: { username: string; avatar: string }) {
-    const matchStateRow = await db.get("SELECT value FROM settings WHERE key = 'match_state'");
-    if (!matchStateRow || matchStateRow.value !== 'playing') return;
+    const matchState = await getSettingValue('match_state');
+    if (matchState !== 'playing') return;
 
-    // Share gives a small flat boost (+2 diamonds) to the team they previously supported, or default local
-    const donor = await db.get("SELECT teamId FROM donors WHERE username = ?", [event.username]);
+    const { data: donor } = await supabase.from('twc_donors').select('teamId').eq('username', event.username).single();
     let teamSide: 'local' | 'visitor' = 'local';
-    
+
     if (donor) {
-      const visitorTeamIdRow = await db.get("SELECT value FROM settings WHERE key = 'visitor_team_id'");
-      if (donor.teamId === visitorTeamIdRow?.value) {
+      const visitorTeamId = await getSettingValue('visitor_team_id');
+      if (donor.teamId === visitorTeamId) {
         teamSide = 'visitor';
       }
     }
 
-    // Apply the share bonus
-    const teamIdRow = await db.get(`SELECT value FROM settings WHERE key = '${teamSide}_team_id'`);
-    const teamId = teamIdRow?.value || 'ARG';
-
+    const teamId = await getSettingValue(`${teamSide}_team_id`) || 'ARG';
     const bonus = 2;
-    await db.run(`
-      INSERT INTO donors (username, diamonds, teamId, avatar)
-      VALUES (?, ?, ?, ?)
-      ON CONFLICT(username) DO UPDATE SET
-        diamonds = diamonds + excluded.diamonds
-    `, [event.username, bonus, teamId, event.avatar]);
 
-    // Push the ball slightly
-    const progressRow = await db.get("SELECT value FROM settings WHERE key = 'ball_progress'");
-    let progress = parseInt(progressRow?.value || '0', 10);
+    const { data: existingDonor } = await supabase.from('twc_donors').select('diamonds').eq('username', event.username).single();
+    if (existingDonor) {
+      await supabase.from('twc_donors').update({
+        diamonds: existingDonor.diamonds + bonus
+      }).eq('username', event.username);
+    } else {
+      await supabase.from('twc_donors').insert({
+        username: event.username,
+        diamonds: bonus,
+        teamId,
+        avatar: event.avatar
+      });
+    }
+
+    let progress = parseInt(await getSettingValue('ball_progress') || '0', 10);
     if (teamSide === 'local') progress += bonus;
     else progress -= bonus;
 
-    await db.run("UPDATE settings SET value = ? WHERE key = 'ball_progress'", [progress.toString()]);
+    await updateSetting('ball_progress', progress.toString());
 
     this.io.emit('game_action', {
       type: 'share',
@@ -406,12 +390,10 @@ export class TikTokLiveService {
     await this.broadcastDonors();
   }
 
-  // Handle Follows
   public async handleFollow(event: { username: string; avatar: string }) {
-    const matchStateRow = await db.get("SELECT value FROM settings WHERE key = 'match_state'");
-    if (!matchStateRow || matchStateRow.value !== 'playing') return;
+    const matchState = await getSettingValue('match_state');
+    if (matchState !== 'playing') return;
 
-    // Deduplicate: skip if same user followed within the last N ms
     const now = Date.now();
     const last = this.recentFollows.get(event.username);
     if (last && now - last < this.followDedupMs) {
@@ -420,16 +402,21 @@ export class TikTokLiveService {
     }
     this.recentFollows.set(event.username, now);
 
-    // Follow does NOT advance the ball - just registers the donor
-    const teamIdRow = await db.get("SELECT value FROM settings WHERE key = 'local_team_id'");
-    const teamId = teamIdRow?.value || 'ARG';
+    const teamId = await getSettingValue('local_team_id') || 'ARG';
 
-    await db.run(`
-      INSERT INTO donors (username, diamonds, teamId, avatar)
-      VALUES (?, ?, ?, ?)
-      ON CONFLICT(username) DO UPDATE SET
-        diamonds = diamonds + excluded.diamonds
-    `, [event.username, 0, teamId, event.avatar]);
+    const { data: existingDonor } = await supabase.from('twc_donors').select('diamonds').eq('username', event.username).single();
+    if (existingDonor) {
+      await supabase.from('twc_donors').update({
+        diamonds: existingDonor.diamonds + 0
+      }).eq('username', event.username);
+    } else {
+      await supabase.from('twc_donors').insert({
+        username: event.username,
+        diamonds: 0,
+        teamId,
+        avatar: event.avatar
+      });
+    }
 
     this.io.emit('game_action', {
       type: 'follow',
@@ -440,7 +427,6 @@ export class TikTokLiveService {
     await this.broadcastDonors();
   }
 
-  // Handle Joins
   public handleJoin(event: { username: string; avatar: string }) {
     this.io.emit('game_action', {
       type: 'join',
@@ -452,65 +438,52 @@ export class TikTokLiveService {
   // --- GOAL CELEBRATION AND STATE ---
 
   private async handleGoal(scoringTeam: 'local' | 'visitor') {
-    // 1. Set celebrating
-    await db.run("UPDATE settings SET value = 'celebrating' WHERE key = 'match_state'");
-    
-    // 2. Increment score
-    const scoreRow = await db.get(`SELECT value FROM settings WHERE key = '${scoringTeam}_score'`);
-    const newScore = parseInt(scoreRow?.value || '0', 10) + 1;
-    await db.run(`UPDATE settings SET value = ? WHERE key = '${scoringTeam}_score'`, [newScore.toString()]);
+    await updateSetting('match_state', 'celebrating');
 
-    // 3. Emit Goal event
-    const teamIdRow = await db.get(`SELECT value FROM settings WHERE key = '${scoringTeam}_team_id'`);
-    const team = await db.get("SELECT * FROM teams WHERE id = ?", [teamIdRow?.value]);
+    const currentScore = parseInt(await getSettingValue(`${scoringTeam}_score`) || '0', 10);
+    const newScore = currentScore + 1;
+    await updateSetting(`${scoringTeam}_score`, newScore.toString());
+
+    const teamId = await getSettingValue(`${scoringTeam}_team_id`);
+    const { data: team } = await supabase.from('twc_teams').select('*').eq('id', teamId).single();
+
+    const localScore = scoringTeam === 'local' ? newScore : parseInt(await getSettingValue('local_score') || '0', 10);
+    const visitorScore = scoringTeam === 'visitor' ? newScore : parseInt(await getSettingValue('visitor_score') || '0', 10);
 
     this.io.emit('game_action', {
       type: 'goal',
       teamSide: scoringTeam,
       teamName: team?.name || (scoringTeam === 'local' ? 'Local' : 'Visitante'),
       flag: team?.flag || '',
-      localScore: scoringTeam === 'local' ? newScore : parseInt((await db.get("SELECT value FROM settings WHERE key = 'local_score'"))?.value || '0', 10),
-      visitorScore: scoringTeam === 'visitor' ? newScore : parseInt((await db.get("SELECT value FROM settings WHERE key = 'visitor_score'"))?.value || '0', 10),
+      localScore,
+      visitorScore,
     });
 
-    // 4. Delay and reset or finish
     setTimeout(async () => {
       try {
-        const activeState = await db.get("SELECT value FROM settings WHERE key = 'match_state'");
-        if (activeState?.value !== 'celebrating') return; // Match was manually reset
+        const activeState = await getSettingValue('match_state');
+        if (activeState !== 'celebrating') return;
 
-        const limitRow = await db.get("SELECT value FROM settings WHERE key = 'match_limit'");
-        const limit = parseInt(limitRow?.value || '3', 10);
-
-        const localScoreVal = parseInt((await db.get("SELECT value FROM settings WHERE key = 'local_score'"))?.value || '0', 10);
-        const visitorScoreVal = parseInt((await db.get("SELECT value FROM settings WHERE key = 'visitor_score'"))?.value || '0', 10);
-
-        const modeRow = await db.get("SELECT value FROM settings WHERE key = 'match_mode'");
-        const mode = modeRow?.value || 'goals';
-
-        // Gold Goal event
-        const goldGoalRow = await db.get("SELECT value FROM settings WHERE key = 'event_gold_goal'");
-        const isGoldGoal = goldGoalRow?.value === 'true';
+        const limit = parseInt(await getSettingValue('match_limit') || '3', 10);
+        const localScoreVal = parseInt(await getSettingValue('local_score') || '0', 10);
+        const visitorScoreVal = parseInt(await getSettingValue('visitor_score') || '0', 10);
+        const mode = await getSettingValue('match_mode') || 'goals';
+        const isGoldGoal = (await getSettingValue('event_gold_goal')) === 'true';
 
         let isMatchOver = false;
         if (isGoldGoal) {
           isMatchOver = true;
-          // Turn off Gold Goal for future matches
-          await db.run("UPDATE settings SET value = 'false' WHERE key = 'event_gold_goal'");
+          await updateSetting('event_gold_goal', 'false');
         } else if (mode === 'goals') {
           if (localScoreVal >= limit || visitorScoreVal >= limit) {
             isMatchOver = true;
           }
-        } else if (mode === 'time') {
-          // In time mode, only the timer can end the match, not goals
-          isMatchOver = false;
         }
 
         if (isMatchOver) {
           await this.endMatch();
         } else {
-          // Resume playing
-          await db.run("UPDATE settings SET value = 'playing' WHERE key = 'match_state'");
+          await updateSetting('match_state', 'playing');
           const freshSettings = await this.getAllSettings();
           this.io.emit('game_state_update', {
             matchState: 'playing',
@@ -527,32 +500,28 @@ export class TikTokLiveService {
   }
 
   public async endMatch() {
-    await db.run("UPDATE settings SET value = 'finished' WHERE key = 'match_state'");
+    await updateSetting('match_state', 'finished');
 
-    const localScoreVal = parseInt((await db.get("SELECT value FROM settings WHERE key = 'local_score'"))?.value || '0', 10);
-    const visitorScoreVal = parseInt((await db.get("SELECT value FROM settings WHERE key = 'visitor_score'"))?.value || '0', 10);
-
-    const localTeamId = (await db.get("SELECT value FROM settings WHERE key = 'local_team_id'"))?.value || 'ARG';
-    const visitorTeamId = (await db.get("SELECT value FROM settings WHERE key = 'visitor_team_id'"))?.value || 'BRA';
+    const localScoreVal = parseInt(await getSettingValue('local_score') || '0', 10);
+    const visitorScoreVal = parseInt(await getSettingValue('visitor_score') || '0', 10);
+    const localTeamId = await getSettingValue('local_team_id') || 'ARG';
+    const visitorTeamId = await getSettingValue('visitor_team_id') || 'BRA';
 
     let winnerId = 'DRAW';
     if (localScoreVal > visitorScoreVal) winnerId = localTeamId;
     else if (visitorScoreVal > localScoreVal) winnerId = visitorTeamId;
 
-    // Find MVP: Top donor in this match
-    const mvp = await db.get("SELECT username, diamonds, teamId FROM donors ORDER BY diamonds DESC LIMIT 1");
+    const { data: mvp } = await supabase.from('twc_donors').select('username, diamonds, teamId').order('diamonds', { ascending: false }).limit(1).single();
 
-    if (mvp) {
-      await db.run(`
-        INSERT INTO matches (localTeamId, visitorTeamId, localScore, visitorScore, winnerId, mvpUsername, mvpDiamonds)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `, [localTeamId, visitorTeamId, localScoreVal, visitorScoreVal, winnerId, mvp.username, mvp.diamonds]);
-    } else {
-      await db.run(`
-        INSERT INTO matches (localTeamId, visitorTeamId, localScore, visitorScore, winnerId, mvpUsername, mvpDiamonds)
-        VALUES (?, ?, ?, ?, ?, NULL, 0)
-      `, [localTeamId, visitorTeamId, localScoreVal, visitorScoreVal, winnerId]);
-    }
+    await supabase.from('twc_matches').insert({
+      localTeamId,
+      visitorTeamId,
+      localScore: localScoreVal,
+      visitorScore: visitorScoreVal,
+      winnerId,
+      mvpUsername: mvp?.username || null,
+      mvpDiamonds: mvp?.diamonds || 0
+    });
 
     this.io.emit('game_action', {
       type: 'match_finished',
@@ -568,18 +537,20 @@ export class TikTokLiveService {
   }
 
   private async getAllSettings() {
-    const rows = await db.all('SELECT * FROM settings');
+    const { data: rows } = await supabase.from('twc_settings').select('*');
     const settings: Record<string, string> = {};
-    for (const row of rows) {
-      settings[row.key] = row.value;
+    if (rows) {
+      for (const row of rows) {
+        settings[row.key] = row.value;
+      }
     }
     return settings;
   }
 
   public async broadcastDonors() {
-    const limitRow = await db.get("SELECT value FROM settings WHERE key = 'top_donors_count'");
-    const limit = parseInt(limitRow?.value || '10', 10);
-    const donors = await db.all(`SELECT * FROM donors ORDER BY diamonds DESC LIMIT ${limit}`);
-    this.io.emit('donors_update', donors);
+    const limitStr = await getSettingValue('top_donors_count');
+    const limit = parseInt(limitStr || '10', 10);
+    const { data: donors } = await supabase.from('twc_donors').select('*').order('diamonds', { ascending: false }).limit(limit);
+    this.io.emit('donors_update', donors || []);
   }
 }

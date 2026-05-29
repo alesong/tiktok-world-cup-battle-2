@@ -3,7 +3,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import * as db from './database.js';
+import { supabase, initDb } from './database.js';
 import { TikTokLiveService } from './tiktok.js';
 
 dotenv.config();
@@ -22,22 +22,23 @@ const io = new Server(httpServer, {
 
 const tiktokService = new TikTokLiveService(io);
 
-// Helper: Get all settings as a key-value object
 const getAllSettings = async () => {
-  const rows = await db.all('SELECT * FROM settings');
+  const { data: rows } = await supabase.from('twc_settings').select('*');
   const settings: Record<string, string> = {};
-  for (const row of rows) {
-    settings[row.key] = row.value;
+  if (rows) {
+    for (const row of rows) {
+      settings[row.key] = row.value;
+    }
   }
   return settings;
 };
 
-// Helper: Broadcast current game state
 const broadcastGameState = async () => {
   const settings = await getAllSettings();
-  const localTeam = await db.get('SELECT * FROM teams WHERE id = ?', [settings.local_team_id]);
-  const visitorTeam = await db.get('SELECT * FROM teams WHERE id = ?', [settings.visitor_team_id]);
-  const donors = await db.all('SELECT * FROM donors ORDER BY diamonds DESC LIMIT 10');
+
+  const { data: localTeam } = await supabase.from('twc_teams').select('*').eq('id', settings.local_team_id).single();
+  const { data: visitorTeam } = await supabase.from('twc_teams').select('*').eq('id', settings.visitor_team_id).single();
+  const { data: donors } = await supabase.from('twc_donors').select('*').order('diamonds', { ascending: false }).limit(10);
 
   io.emit('game_state_update', {
     matchState: settings.match_state,
@@ -47,17 +48,16 @@ const broadcastGameState = async () => {
     settings,
     localTeam,
     visitorTeam,
-    donors
+    donors: donors || []
   });
 };
 
 // --- REST API ENDPOINTS ---
 
-// Admin Login
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { password } = req.body;
-    const adminPassRow = await db.get("SELECT value FROM settings WHERE key = 'admin_password'");
+    const { data: adminPassRow } = await supabase.from('twc_settings').select('value').eq('key', 'admin_password').single();
     const adminPass = adminPassRow?.value || 'admin123';
 
     if (password === adminPass) {
@@ -70,20 +70,19 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-// Fetch Settings & Teams
 app.get('/api/settings', async (req, res) => {
   try {
     const settings = await getAllSettings();
-    const teams = await db.all('SELECT * FROM teams');
-    const recentMatches = await db.all('SELECT * FROM matches ORDER BY createdAt DESC LIMIT 5');
-    const donors = await db.all('SELECT * FROM donors ORDER BY diamonds DESC LIMIT 10');
+    const { data: teams } = await supabase.from('twc_teams').select('*');
+    const { data: recentMatches } = await supabase.from('twc_matches').select('*').order('created_at', { ascending: false }).limit(5);
+    const { data: donors } = await supabase.from('twc_donors').select('*').order('diamonds', { ascending: false }).limit(10);
 
     res.json({
       success: true,
       settings,
-      teams,
-      recentMatches,
-      donors,
+      teams: teams || [],
+      recentMatches: recentMatches || [],
+      donors: donors || [],
       tiktok: tiktokService.getConnectionState()
     });
   } catch (error: any) {
@@ -91,16 +90,14 @@ app.get('/api/settings', async (req, res) => {
   }
 });
 
-// Update Settings
 app.post('/api/settings', async (req, res) => {
   try {
-    const updates = req.body; // Key-value object of settings to update
+    const updates = req.body;
 
     for (const [key, value] of Object.entries(updates)) {
-      await db.run('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', [key, String(value)]);
+      await supabase.from('twc_settings').upsert({ key, value: String(value) }, { onConflict: 'key' });
     }
 
-    // Broadcast the changes
     await broadcastGameState();
     res.json({ success: true, message: 'Configuraciones actualizadas con éxito' });
   } catch (error: any) {
@@ -108,42 +105,36 @@ app.post('/api/settings', async (req, res) => {
   }
 });
 
-// Match Controls
 app.post('/api/match/control', async (req, res) => {
   try {
     const { action } = req.body;
 
     if (action === 'start') {
-      await db.run("UPDATE settings SET value = 'playing' WHERE key = 'match_state'");
+      await supabase.from('twc_settings').update({ value: 'playing' }).eq('key', 'match_state');
       io.emit('game_action', { type: 'match_started' });
     } else if (action === 'pause') {
-      await db.run("UPDATE settings SET value = 'idle' WHERE key = 'match_state'");
+      await supabase.from('twc_settings').update({ value: 'idle' }).eq('key', 'match_state');
       io.emit('game_action', { type: 'match_paused' });
     } else if (action === 'finish') {
       await tiktokService.endMatch();
     } else if (action === 'reset') {
-      // Clear donors for a fresh match
-      await db.run("DELETE FROM donors");
-      // Reset scores and progress
-      await db.run("UPDATE settings SET value = '0' WHERE key = 'local_score'");
-      await db.run("UPDATE settings SET value = '0' WHERE key = 'visitor_score'");
-      await db.run("UPDATE settings SET value = '0' WHERE key = 'ball_progress'");
-      await db.run("UPDATE settings SET value = 'idle' WHERE key = 'match_state'");
-
-      // Clear special events
-      await db.run("UPDATE settings SET value = '1' WHERE key = 'event_multiplier'");
-      await db.run("UPDATE settings SET value = 'false' WHERE key = 'event_gold_goal'");
-      await db.run("UPDATE settings SET value = 'none' WHERE key = 'event_penalty'");
-      await db.run("UPDATE settings SET value = 'false' WHERE key = 'event_turbo'");
+      await supabase.from('twc_donors').delete().neq('username', '');
+      await supabase.from('twc_settings').update({ value: '0' }).eq('key', 'local_score');
+      await supabase.from('twc_settings').update({ value: '0' }).eq('key', 'visitor_score');
+      await supabase.from('twc_settings').update({ value: '0' }).eq('key', 'ball_progress');
+      await supabase.from('twc_settings').update({ value: 'idle' }).eq('key', 'match_state');
+      await supabase.from('twc_settings').update({ value: '1' }).eq('key', 'event_multiplier');
+      await supabase.from('twc_settings').update({ value: 'false' }).eq('key', 'event_gold_goal');
+      await supabase.from('twc_settings').update({ value: 'none' }).eq('key', 'event_penalty');
+      await supabase.from('twc_settings').update({ value: 'false' }).eq('key', 'event_turbo');
 
       io.emit('game_action', { type: 'match_reset' });
     } else if (action === 'reset-scores') {
-      // Keeps donor list but resets scoreboard
-      await db.run("UPDATE settings SET value = '0' WHERE key = 'local_score'");
-      await db.run("UPDATE settings SET value = '0' WHERE key = 'visitor_score'");
-      await db.run("UPDATE settings SET value = '0' WHERE key = 'ball_progress'");
-      await db.run("UPDATE settings SET value = 'idle' WHERE key = 'match_state'");
-      
+      await supabase.from('twc_settings').update({ value: '0' }).eq('key', 'local_score');
+      await supabase.from('twc_settings').update({ value: '0' }).eq('key', 'visitor_score');
+      await supabase.from('twc_settings').update({ value: '0' }).eq('key', 'ball_progress');
+      await supabase.from('twc_settings').update({ value: 'idle' }).eq('key', 'match_state');
+
       io.emit('game_action', { type: 'match_reset_scores' });
     }
 
@@ -154,7 +145,6 @@ app.post('/api/match/control', async (req, res) => {
   }
 });
 
-// TikTok Connector Operations
 app.post('/api/tiktok/connect', (req, res) => {
   const { username } = req.body;
   if (!username) {
@@ -174,7 +164,6 @@ app.post('/api/tiktok/disconnect', (req, res) => {
   res.json({ success: true, message: 'Disconnected' });
 });
 
-// Simulator Endpoint
 app.post('/api/simulate', async (req, res) => {
   try {
     const { type, username, giftName, count, likeCount } = req.body;
@@ -217,7 +206,6 @@ app.post('/api/simulate', async (req, res) => {
   }
 });
 
-// Ping endpoint (keep server alive)
 app.get('/api/ping', (req, res) => {
   res.json({ success: true, timestamp: Date.now(), message: 'pong' });
 });
@@ -227,14 +215,14 @@ app.get('/api/ping', (req, res) => {
 io.on('connection', async (socket) => {
   console.log(`WebSocket client connected: ${socket.id}`);
 
-  // Send initial game state immediately
   try {
     const settings = await getAllSettings();
-    const localTeam = await db.get('SELECT * FROM teams WHERE id = ?', [settings.local_team_id]);
-    const visitorTeam = await db.get('SELECT * FROM teams WHERE id = ?', [settings.visitor_team_id]);
-    const donors = await db.all('SELECT * FROM donors ORDER BY diamonds DESC LIMIT 10');
-    const teams = await db.all('SELECT * FROM teams');
-    
+
+    const { data: localTeam } = await supabase.from('twc_teams').select('*').eq('id', settings.local_team_id).single();
+    const { data: visitorTeam } = await supabase.from('twc_teams').select('*').eq('id', settings.visitor_team_id).single();
+    const { data: donors } = await supabase.from('twc_donors').select('*').order('diamonds', { ascending: false }).limit(10);
+    const { data: teams } = await supabase.from('twc_teams').select('*');
+
     socket.emit('init_state', {
       matchState: settings.match_state,
       ballProgress: parseInt(settings.ball_progress || '0', 10),
@@ -243,8 +231,8 @@ io.on('connection', async (socket) => {
       settings,
       localTeam,
       visitorTeam,
-      donors,
-      teams,
+      donors: donors || [],
+      teams: teams || [],
       tiktok: tiktokService.getConnectionState()
     });
   } catch (err) {
@@ -258,7 +246,7 @@ io.on('connection', async (socket) => {
 
 // Start Server
 const PORT = process.env.PORT || 5000;
-db.initDb().then(() => {
+initDb().then(() => {
   httpServer.listen(PORT, () => {
     console.log(`===============================================`);
     console.log(`⚽ TIKTOK WORLD CUP BATTLE BACKEND RUNNING ⚽`);

@@ -237,15 +237,22 @@ export const useGameStore = create<GameState>((set, get) => {
     },
 
     initSocket: () => {
-      if (get().socket) return; // already initialized
+      const existingSocket = get().socket;
+      if (existingSocket?.connected) return;
 
-      set({ isConnecting: true });
+      if (existingSocket) {
+        existingSocket.removeAllListeners();
+        existingSocket.disconnect();
+      }
+
+      set({ isConnecting: true, isConnected: false });
 
       console.log('Connecting socket to:', API_BASE_URL);
 
       const socket = io(API_BASE_URL, {
-        reconnectionAttempts: 10,
-        reconnectionDelay: 2000
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 2000,
+        reconnectionDelayMax: 10000
       });
 
       socket.on('connect', () => {
@@ -253,9 +260,13 @@ export const useGameStore = create<GameState>((set, get) => {
         console.log('Socket.io connected successfully!');
       });
 
-      socket.on('disconnect', () => {
+      socket.on('disconnect', (reason) => {
         set({ isConnected: false });
-        console.log('Socket.io disconnected!');
+        console.log('Socket.io disconnected:', reason);
+      });
+
+      socket.on('connect_error', (err) => {
+        console.error('Socket connection error:', err.message);
       });
 
       socket.on('init_state', (data: any) => {

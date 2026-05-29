@@ -83,7 +83,7 @@ export const AdminPanel: React.FC = () => {
   const [simUser, setSimUser] = useState('Hincha_Futbol');
   const [simLikeCount, setSimLikeCount] = useState(10);
 
-  const { initSocket, settings, teams, matchState, isConnected, tiktokState, speechRate, speechVolume, speechVoiceURI, speechEnabled, speak, setSpeechSettings } = useGameStore();
+  const { initSocket, settings, teams, matchState, isConnected, isConnecting, tiktokState, speechRate, speechVolume, speechVoiceURI, speechEnabled, speak, setSpeechSettings } = useGameStore();
 
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [pingStatus, setPingStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -416,10 +416,18 @@ export const AdminPanel: React.FC = () => {
           </div>
           <div className="flex items-center gap-3 text-sm">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700">
-              <span className={`h-2.5 w-2.5 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></span>
+              <span className={`h-2.5 w-2.5 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : isConnecting ? 'bg-yellow-400 animate-pulse' : 'bg-red-500'}`}></span>
               <span className="text-xs font-semibold text-slate-300">
-                Socket: {isConnected ? 'Sincronizado' : 'Desconectado'}
+                Socket: {isConnected ? 'Sincronizado' : isConnecting ? 'Conectando...' : 'Desconectado'}
               </span>
+              {!isConnected && !isConnecting && (
+                <button
+                  onClick={initSocket}
+                  className="ml-1 text-[10px] text-amber-400 hover:text-amber-300 underline"
+                >
+                  Reconectar
+                </button>
+              )}
             </div>
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700" title={`${API_URL}/api/ping`}>
               <span className={`h-2.5 w-2.5 rounded-full ${pingStatus === 'success' ? 'bg-green-500' : pingStatus === 'error' ? 'bg-red-500' : 'bg-slate-500'}`}></span>
