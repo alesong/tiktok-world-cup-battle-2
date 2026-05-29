@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useGameStore } from '../store/useGameStore.js';
-import { Shield, Radio, Settings, Trophy, Zap, Sparkles, Volume2, Plus, Trash, Play, Pause, RotateCcw, AlertTriangle } from 'lucide-react';
+import { Shield, Radio, Settings, Trophy, Zap, Sparkles, Volume2, Plus, Trash, Play, Pause, RotateCcw, AlertTriangle, Loader2 } from 'lucide-react';
 
 const TIKTOK_GIFTS = [
   { name: 'Rosa', icon: '🌹', defaultPrice: 1 },
@@ -57,6 +57,7 @@ export const AdminPanel: React.FC = () => {
   const [password, setPassword] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loginError, setLoginError] = useState('');
+  const [isLoginLoading, setIsLoginLoading] = useState(false);
   
   // Settings Form State
   const [localTeamId, setLocalTeamId] = useState('ARG');
@@ -75,6 +76,9 @@ export const AdminPanel: React.FC = () => {
   const [newGiftValue, setNewGiftValue] = useState(1);
   const [newGiftTeam, setNewGiftTeam] = useState<'local' | 'visitor'>('local');
 
+  // TikTok Connection State
+  const [isTikTokConnecting, setIsTikTokConnecting] = useState(false);
+
   // Simulator Console State
   const [simUser, setSimUser] = useState('Hincha_Futbol');
   const [simLikeCount, setSimLikeCount] = useState(10);
@@ -82,6 +86,34 @@ export const AdminPanel: React.FC = () => {
   const { initSocket, settings, teams, matchState, isConnected, tiktokState, speechRate, speechVolume, speechVoiceURI, speechEnabled, speak, setSpeechSettings } = useGameStore();
 
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [pingStatus, setPingStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [pingLatency, setPingLatency] = useState<number | null>(null);
+  const [pingTime, setPingTime] = useState<string>('');
+
+  const doPing = async () => {
+    const start = Date.now();
+    try {
+      const res = await fetch(`${API_URL}/api/ping`);
+      const data = await res.json();
+      if (data.success) {
+        setPingStatus('success');
+        setPingLatency(Date.now() - start);
+      } else {
+        setPingStatus('error');
+        setPingLatency(null);
+      }
+    } catch {
+      setPingStatus('error');
+      setPingLatency(null);
+    }
+    setPingTime(new Date().toLocaleTimeString());
+  };
+
+  useEffect(() => {
+    doPing();
+    const interval = setInterval(doPing, 600000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (!('speechSynthesis' in window)) return;
@@ -136,6 +168,7 @@ export const AdminPanel: React.FC = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
+    setIsLoginLoading(true);
 
     try {
       const response = await fetch(`${API_URL}/api/auth/login`, {
@@ -155,6 +188,8 @@ export const AdminPanel: React.FC = () => {
       }
     } catch (err) {
       setLoginError('Error de red al intentar autenticar');
+    } finally {
+      setIsLoginLoading(false);
     }
   };
 
@@ -238,6 +273,7 @@ export const AdminPanel: React.FC = () => {
 
   // Connect TikTok Streamer
   const handleTikTokConnect = async (connect: boolean) => {
+    setIsTikTokConnecting(true);
     const endpoint = connect ? 'connect' : 'disconnect';
     try {
       const response = await fetch(`${API_URL}/api/tiktok/${endpoint}`, {
@@ -253,6 +289,8 @@ export const AdminPanel: React.FC = () => {
       }
     } catch (err) {
       console.error(err);
+    } finally {
+      setIsTikTokConnecting(false);
     }
   };
 
@@ -318,9 +356,11 @@ export const AdminPanel: React.FC = () => {
 
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-amber-600 to-yellow-500 hover:from-amber-500 hover:to-yellow-400 text-slate-950 font-bold uppercase tracking-wider py-3 rounded-lg shadow-lg hover:shadow-yellow-500/15 transition-all mt-4"
+              disabled={isLoginLoading}
+              className="w-full bg-gradient-to-r from-amber-600 to-yellow-500 hover:from-amber-500 hover:to-yellow-400 disabled:from-amber-600/50 disabled:to-yellow-500/50 disabled:cursor-not-allowed text-slate-950 font-bold uppercase tracking-wider py-3 rounded-lg shadow-lg hover:shadow-yellow-500/15 transition-all mt-4 flex items-center justify-center gap-2"
             >
-              Iniciar Sesión
+              {isLoginLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
+              {isLoginLoading ? 'Ingresando...' : 'Iniciar Sesión'}
             </button>
           </form>
         </div>
@@ -349,6 +389,13 @@ export const AdminPanel: React.FC = () => {
               <span className="text-xs font-semibold text-slate-300">
                 Socket: {isConnected ? 'Sincronizado' : 'Desconectado'}
               </span>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700">
+              <span className={`h-2.5 w-2.5 rounded-full ${pingStatus === 'success' ? 'bg-green-500' : pingStatus === 'error' ? 'bg-red-500' : 'bg-slate-500'}`}></span>
+              <span className="text-xs font-semibold text-slate-300">
+                Ping: {pingStatus === 'success' ? `${pingLatency}ms` : pingStatus === 'error' ? 'Falló' : '...'}
+              </span>
+              {pingTime && <span className="text-[10px] text-slate-500">{pingTime}</span>}
             </div>
           </div>
         </header>
@@ -383,10 +430,11 @@ export const AdminPanel: React.FC = () => {
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleTikTokConnect(true)}
-                    disabled={tiktokState.connected}
-                    className="flex-1 bg-green-700/20 text-green-400 hover:bg-green-700/40 border border-green-600/30 font-bold uppercase text-[10px] tracking-wider py-2.5 rounded-lg transition-all"
+                    disabled={tiktokState.connected || isTikTokConnecting}
+                    className="flex-1 bg-green-700/20 text-green-400 hover:bg-green-700/40 border border-green-600/30 font-bold uppercase text-[10px] tracking-wider py-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5"
                   >
-                    Conectar Live
+                    {isTikTokConnecting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                    {isTikTokConnecting ? 'Conectando...' : 'Conectar Live'}
                   </button>
                   <button
                     onClick={() => handleTikTokConnect(false)}

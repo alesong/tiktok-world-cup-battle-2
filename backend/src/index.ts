@@ -217,6 +217,11 @@ app.post('/api/simulate', async (req, res) => {
   }
 });
 
+// Ping endpoint (keep server alive)
+app.get('/api/ping', (req, res) => {
+  res.json({ success: true, timestamp: Date.now(), message: 'pong' });
+});
+
 // --- WEBSOCKET CHANNELS ---
 
 io.on('connection', async (socket) => {
