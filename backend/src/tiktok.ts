@@ -1,5 +1,5 @@
 import { Server } from 'socket.io';
-import { supabase } from './database.js';
+import { prisma } from './database.js';
 
 let TikTokConnectorClass: any = null;
 
@@ -14,12 +14,12 @@ async function loadTikTokConnector() {
 }
 
 async function getSettingValue(key: string): Promise<string | null> {
-  const { data } = await supabase.from('twc_settings').select('value').eq('key', key).single();
-  return data?.value ?? null;
+  const row = await prisma.twcSetting.findUnique({ where: { key } });
+  return row?.value ?? null;
 }
 
 async function updateSetting(key: string, value: string) {
-  await supabase.from('twc_settings').update({ value }).eq('key', key);
+  await prisma.twcSetting.update({ where: { key }, data: { value } });
 }
 
 export class TikTokLiveService {
@@ -272,19 +272,24 @@ export class TikTokLiveService {
     const teamId = await getSettingValue(`${teamSide}_team_id`) || (teamSide === 'local' ? 'ARG' : 'BRA');
 
     // Upsert donor with diamonds increment
-    const { data: existingDonor } = await supabase.from('twc_donors').select('diamonds').eq('username', event.username).single();
+    const existingDonor = await prisma.twcDonor.findUnique({ where: { username: event.username } });
     if (existingDonor) {
-      await supabase.from('twc_donors').update({
-        diamonds: existingDonor.diamonds + totalDiamonds,
-        teamId,
-        avatar: event.avatar
-      }).eq('username', event.username);
+      await prisma.twcDonor.update({
+        where: { username: event.username },
+        data: {
+          diamonds: (existingDonor.diamonds ?? 0) + totalDiamonds,
+          teamId,
+          avatar: event.avatar
+        }
+      });
     } else {
-      await supabase.from('twc_donors').insert({
-        username: event.username,
-        diamonds: totalDiamonds,
-        teamId,
-        avatar: event.avatar
+      await prisma.twcDonor.create({
+        data: {
+          username: event.username,
+          diamonds: totalDiamonds,
+          teamId,
+          avatar: event.avatar
+        }
       });
     }
 
@@ -346,12 +351,12 @@ export class TikTokLiveService {
     const matchState = await getSettingValue('match_state');
     if (matchState !== 'playing') return;
 
-    const { data: donor } = await supabase.from('twc_donors').select('teamId').eq('username', event.username).single();
+    const shareDonor = await prisma.twcDonor.findUnique({ where: { username: event.username } });
     let teamSide: 'local' | 'visitor' = 'local';
 
-    if (donor) {
+    if (shareDonor) {
       const visitorTeamId = await getSettingValue('visitor_team_id');
-      if (donor.teamId === visitorTeamId) {
+      if (shareDonor.teamId === visitorTeamId) {
         teamSide = 'visitor';
       }
     }
@@ -359,17 +364,15 @@ export class TikTokLiveService {
     const teamId = await getSettingValue(`${teamSide}_team_id`) || 'ARG';
     const bonus = 2;
 
-    const { data: existingDonor } = await supabase.from('twc_donors').select('diamonds').eq('username', event.username).single();
-    if (existingDonor) {
-      await supabase.from('twc_donors').update({
-        diamonds: existingDonor.diamonds + bonus
-      }).eq('username', event.username);
+    const existingShareDonor = await prisma.twcDonor.findUnique({ where: { username: event.username } });
+    if (existingShareDonor) {
+      await prisma.twcDonor.update({
+        where: { username: event.username },
+        data: { diamonds: (existingShareDonor.diamonds ?? 0) + bonus }
+      });
     } else {
-      await supabase.from('twc_donors').insert({
-        username: event.username,
-        diamonds: bonus,
-        teamId,
-        avatar: event.avatar
+      await prisma.twcDonor.create({
+        data: { username: event.username, diamonds: bonus, teamId, avatar: event.avatar }
       });
     }
 
@@ -404,17 +407,15 @@ export class TikTokLiveService {
 
     const teamId = await getSettingValue('local_team_id') || 'ARG';
 
-    const { data: existingDonor } = await supabase.from('twc_donors').select('diamonds').eq('username', event.username).single();
-    if (existingDonor) {
-      await supabase.from('twc_donors').update({
-        diamonds: existingDonor.diamonds + 0
-      }).eq('username', event.username);
+    const existingFollowDonor = await prisma.twcDonor.findUnique({ where: { username: event.username } });
+    if (existingFollowDonor) {
+      await prisma.twcDonor.update({
+        where: { username: event.username },
+        data: { diamonds: existingFollowDonor.diamonds ?? 0 }
+      });
     } else {
-      await supabase.from('twc_donors').insert({
-        username: event.username,
-        diamonds: 0,
-        teamId,
-        avatar: event.avatar
+      await prisma.twcDonor.create({
+        data: { username: event.username, diamonds: 0, teamId, avatar: event.avatar }
       });
     }
 
@@ -444,8 +445,8 @@ export class TikTokLiveService {
     const newScore = currentScore + 1;
     await updateSetting(`${scoringTeam}_score`, newScore.toString());
 
-    const teamId = await getSettingValue(`${scoringTeam}_team_id`);
-    const { data: team } = await supabase.from('twc_teams').select('*').eq('id', teamId).single();
+    const teamId = (await getSettingValue(`${scoringTeam}_team_id`)) || undefined;
+    const team = teamId ? await prisma.twcTeam.findUnique({ where: { id: teamId } }) : null;
 
     const localScore = scoringTeam === 'local' ? newScore : parseInt(await getSettingValue('local_score') || '0', 10);
     const visitorScore = scoringTeam === 'visitor' ? newScore : parseInt(await getSettingValue('visitor_score') || '0', 10);
@@ -511,16 +512,18 @@ export class TikTokLiveService {
     if (localScoreVal > visitorScoreVal) winnerId = localTeamId;
     else if (visitorScoreVal > localScoreVal) winnerId = visitorTeamId;
 
-    const { data: mvp } = await supabase.from('twc_donors').select('username, diamonds, teamId').order('diamonds', { ascending: false }).limit(1).single();
+    const mvp = await prisma.twcDonor.findFirst({ orderBy: { diamonds: 'desc' } });
 
-    await supabase.from('twc_matches').insert({
-      localTeamId,
-      visitorTeamId,
-      localScore: localScoreVal,
-      visitorScore: visitorScoreVal,
-      winnerId,
-      mvpUsername: mvp?.username || null,
-      mvpDiamonds: mvp?.diamonds || 0
+    await prisma.twcMatch.create({
+      data: {
+        localTeamId,
+        visitorTeamId,
+        localScore: localScoreVal,
+        visitorScore: visitorScoreVal,
+        winnerId,
+        mvpUsername: mvp?.username ?? null,
+        mvpDiamonds: mvp?.diamonds ?? 0
+      }
     });
 
     this.io.emit('game_action', {
@@ -537,12 +540,10 @@ export class TikTokLiveService {
   }
 
   private async getAllSettings() {
-    const { data: rows } = await supabase.from('twc_settings').select('*');
+    const rows = await prisma.twcSetting.findMany();
     const settings: Record<string, string> = {};
-    if (rows) {
-      for (const row of rows) {
-        settings[row.key] = row.value;
-      }
+    for (const row of rows) {
+      settings[row.key] = row.value ?? '';
     }
     return settings;
   }
@@ -550,7 +551,7 @@ export class TikTokLiveService {
   public async broadcastDonors() {
     const limitStr = await getSettingValue('top_donors_count');
     const limit = parseInt(limitStr || '10', 10);
-    const { data: donors } = await supabase.from('twc_donors').select('*').order('diamonds', { ascending: false }).limit(limit);
+    const donors = await prisma.twcDonor.findMany({ orderBy: { diamonds: 'desc' }, take: limit });
     this.io.emit('donors_update', donors || []);
   }
 }

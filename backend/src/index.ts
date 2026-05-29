@@ -3,7 +3,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { supabase, initDb } from './database.js';
+import { prisma, initDb } from './database.js';
 import { TikTokLiveService } from './tiktok.js';
 
 dotenv.config();
@@ -23,12 +23,10 @@ const io = new Server(httpServer, {
 const tiktokService = new TikTokLiveService(io);
 
 const getAllSettings = async () => {
-  const { data: rows } = await supabase.from('twc_settings').select('*');
+  const rows = await prisma.twcSetting.findMany();
   const settings: Record<string, string> = {};
-  if (rows) {
-    for (const row of rows) {
-      settings[row.key] = row.value;
-    }
+  for (const row of rows) {
+    settings[row.key] = row.value ?? '';
   }
   return settings;
 };
@@ -36,9 +34,9 @@ const getAllSettings = async () => {
 const broadcastGameState = async () => {
   const settings = await getAllSettings();
 
-  const { data: localTeam } = await supabase.from('twc_teams').select('*').eq('id', settings.local_team_id).single();
-  const { data: visitorTeam } = await supabase.from('twc_teams').select('*').eq('id', settings.visitor_team_id).single();
-  const { data: donors } = await supabase.from('twc_donors').select('*').order('diamonds', { ascending: false }).limit(10);
+  const localTeam = await prisma.twcTeam.findUnique({ where: { id: settings.local_team_id } });
+  const visitorTeam = await prisma.twcTeam.findUnique({ where: { id: settings.visitor_team_id } });
+  const donors = await prisma.twcDonor.findMany({ orderBy: { diamonds: 'desc' }, take: 10 });
 
   io.emit('game_state_update', {
     matchState: settings.match_state,
@@ -57,7 +55,7 @@ const broadcastGameState = async () => {
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { password } = req.body;
-    const { data: adminPassRow } = await supabase.from('twc_settings').select('value').eq('key', 'admin_password').single();
+    const adminPassRow = await prisma.twcSetting.findUnique({ where: { key: 'admin_password' } });
     const adminPass = adminPassRow?.value || 'admin123';
 
     if (password === adminPass) {
@@ -73,9 +71,9 @@ app.post('/api/auth/login', async (req, res) => {
 app.get('/api/settings', async (req, res) => {
   try {
     const settings = await getAllSettings();
-    const { data: teams } = await supabase.from('twc_teams').select('*');
-    const { data: recentMatches } = await supabase.from('twc_matches').select('*').order('created_at', { ascending: false }).limit(5);
-    const { data: donors } = await supabase.from('twc_donors').select('*').order('diamonds', { ascending: false }).limit(10);
+    const teams = await prisma.twcTeam.findMany();
+    const recentMatches = await prisma.twcMatch.findMany({ orderBy: { createdAt: 'desc' }, take: 5 });
+    const donors = await prisma.twcDonor.findMany({ orderBy: { diamonds: 'desc' }, take: 10 });
 
     res.json({
       success: true,
@@ -95,7 +93,11 @@ app.post('/api/settings', async (req, res) => {
     const updates = req.body;
 
     for (const [key, value] of Object.entries(updates)) {
-      await supabase.from('twc_settings').upsert({ key, value: String(value) }, { onConflict: 'key' });
+      await prisma.twcSetting.upsert({
+        where: { key },
+        create: { key, value: String(value) },
+        update: { value: String(value) }
+      });
     }
 
     await broadcastGameState();
@@ -110,30 +112,30 @@ app.post('/api/match/control', async (req, res) => {
     const { action } = req.body;
 
     if (action === 'start') {
-      await supabase.from('twc_settings').update({ value: 'playing' }).eq('key', 'match_state');
+      await prisma.twcSetting.update({ where: { key: 'match_state' }, data: { value: 'playing' } });
       io.emit('game_action', { type: 'match_started' });
     } else if (action === 'pause') {
-      await supabase.from('twc_settings').update({ value: 'idle' }).eq('key', 'match_state');
+      await prisma.twcSetting.update({ where: { key: 'match_state' }, data: { value: 'idle' } });
       io.emit('game_action', { type: 'match_paused' });
     } else if (action === 'finish') {
       await tiktokService.endMatch();
     } else if (action === 'reset') {
-      await supabase.from('twc_donors').delete().neq('username', '');
-      await supabase.from('twc_settings').update({ value: '0' }).eq('key', 'local_score');
-      await supabase.from('twc_settings').update({ value: '0' }).eq('key', 'visitor_score');
-      await supabase.from('twc_settings').update({ value: '0' }).eq('key', 'ball_progress');
-      await supabase.from('twc_settings').update({ value: 'idle' }).eq('key', 'match_state');
-      await supabase.from('twc_settings').update({ value: '1' }).eq('key', 'event_multiplier');
-      await supabase.from('twc_settings').update({ value: 'false' }).eq('key', 'event_gold_goal');
-      await supabase.from('twc_settings').update({ value: 'none' }).eq('key', 'event_penalty');
-      await supabase.from('twc_settings').update({ value: 'false' }).eq('key', 'event_turbo');
+      await prisma.twcDonor.deleteMany({ where: { username: { not: '' } } });
+      await prisma.twcSetting.update({ where: { key: 'local_score' }, data: { value: '0' } });
+      await prisma.twcSetting.update({ where: { key: 'visitor_score' }, data: { value: '0' } });
+      await prisma.twcSetting.update({ where: { key: 'ball_progress' }, data: { value: '0' } });
+      await prisma.twcSetting.update({ where: { key: 'match_state' }, data: { value: 'idle' } });
+      await prisma.twcSetting.update({ where: { key: 'event_multiplier' }, data: { value: '1' } });
+      await prisma.twcSetting.update({ where: { key: 'event_gold_goal' }, data: { value: 'false' } });
+      await prisma.twcSetting.update({ where: { key: 'event_penalty' }, data: { value: 'none' } });
+      await prisma.twcSetting.update({ where: { key: 'event_turbo' }, data: { value: 'false' } });
 
       io.emit('game_action', { type: 'match_reset' });
     } else if (action === 'reset-scores') {
-      await supabase.from('twc_settings').update({ value: '0' }).eq('key', 'local_score');
-      await supabase.from('twc_settings').update({ value: '0' }).eq('key', 'visitor_score');
-      await supabase.from('twc_settings').update({ value: '0' }).eq('key', 'ball_progress');
-      await supabase.from('twc_settings').update({ value: 'idle' }).eq('key', 'match_state');
+      await prisma.twcSetting.update({ where: { key: 'local_score' }, data: { value: '0' } });
+      await prisma.twcSetting.update({ where: { key: 'visitor_score' }, data: { value: '0' } });
+      await prisma.twcSetting.update({ where: { key: 'ball_progress' }, data: { value: '0' } });
+      await prisma.twcSetting.update({ where: { key: 'match_state' }, data: { value: 'idle' } });
 
       io.emit('game_action', { type: 'match_reset_scores' });
     }
@@ -218,10 +220,10 @@ io.on('connection', async (socket) => {
   try {
     const settings = await getAllSettings();
 
-    const { data: localTeam } = await supabase.from('twc_teams').select('*').eq('id', settings.local_team_id).single();
-    const { data: visitorTeam } = await supabase.from('twc_teams').select('*').eq('id', settings.visitor_team_id).single();
-    const { data: donors } = await supabase.from('twc_donors').select('*').order('diamonds', { ascending: false }).limit(10);
-    const { data: teams } = await supabase.from('twc_teams').select('*');
+    const localTeam = await prisma.twcTeam.findUnique({ where: { id: settings.local_team_id } });
+    const visitorTeam = await prisma.twcTeam.findUnique({ where: { id: settings.visitor_team_id } });
+    const donors = await prisma.twcDonor.findMany({ orderBy: { diamonds: 'desc' }, take: 10 });
+    const teams = await prisma.twcTeam.findMany();
 
     socket.emit('init_state', {
       matchState: settings.match_state,

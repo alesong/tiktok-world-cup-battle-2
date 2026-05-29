@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model TwcSetting {
+  key   String @id
+  value String?
+}
+
+model TwcTeam {
+  id             String @id
+  name           String?
+  flag           String?
+  primaryColor   String? @map("primaryColor")
+  secondaryColor String? @map("secondaryColor")
+  jerseyColor    String? @map("jerseyColor")
+}
+
+model TwcDonor {
+  username  String @id
+  diamonds  Int?
+  teamId    String? @map("teamId")
+  avatar    String?
+}
+
+model TwcMatch {
+  id           Int      @id @default(autoincrement())
+  localTeamId  String?  @map("localTeamId")
+  visitorTeamId String? @map("visitorTeamId")
+  localScore   Int?     @map("localScore")
+  visitorScore Int?     @map("visitorScore")
+  winnerId     String?  @map("winnerId")
+  mvpUsername  String?  @map("mvpUsername")
+  mvpDiamonds  Int?     @map("mvpDiamonds")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("twc_matches")
+}
