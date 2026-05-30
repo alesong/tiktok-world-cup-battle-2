@@ -34,8 +34,10 @@ const getAllSettings = async () => {
 const broadcastGameState = async () => {
   const settings = await getAllSettings();
 
-  const localTeam = await prisma.twcTeam.findUnique({ where: { id: settings.local_team_id } });
-  const visitorTeam = await prisma.twcTeam.findUnique({ where: { id: settings.visitor_team_id } });
+  const localTeamId = settings.local_team_id || 'ARG';
+  const visitorTeamId = settings.visitor_team_id || 'BRA';
+  const localTeam = await prisma.twcTeam.findUnique({ where: { id: localTeamId } });
+  const visitorTeam = await prisma.twcTeam.findUnique({ where: { id: visitorTeamId } });
   const donors = await prisma.twcDonor.findMany({ orderBy: { diamonds: 'desc' }, take: 10 });
 
   io.emit('game_state_update', {
@@ -220,8 +222,10 @@ io.on('connection', async (socket) => {
   try {
     const settings = await getAllSettings();
 
-    const localTeam = await prisma.twcTeam.findUnique({ where: { id: settings.local_team_id } });
-    const visitorTeam = await prisma.twcTeam.findUnique({ where: { id: settings.visitor_team_id } });
+    const localTeamId = settings.local_team_id || 'ARG';
+    const visitorTeamId = settings.visitor_team_id || 'BRA';
+    const localTeam = await prisma.twcTeam.findUnique({ where: { id: localTeamId } });
+    const visitorTeam = await prisma.twcTeam.findUnique({ where: { id: visitorTeamId } });
     const donors = await prisma.twcDonor.findMany({ orderBy: { diamonds: 'desc' }, take: 10 });
     const teams = await prisma.twcTeam.findMany();
 
