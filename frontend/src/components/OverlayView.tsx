@@ -78,6 +78,7 @@ export const OverlayView: React.FC = () => {
   const resolution = settings.overlay_resolution || '1920x1080';
   const isVertical = resolution === '1080x1920';
   const scale = parseInt(resolution.split('x')[0], 10) / 1920;
+  const textScale = parseInt(settings.scoreboard_text_scale || '100', 10) / 100;
 
   // Parse gifts from settings
   let giftListLocal: any[] = [];
@@ -200,12 +201,12 @@ export const OverlayView: React.FC = () => {
 
               {/* Local Team Info */}
               <div className="flex items-center w-1/3 justify-end" style={{ gap: `${0.83 * scale}vw` }}>
-                <span className="font-sports font-extrabold uppercase tracking-wider text-slate-100 truncate" style={{ fontSize: `${1.04 * scale}vw` }}>
+                <span className="font-sports font-extrabold uppercase tracking-wider text-slate-100 truncate" style={{ fontSize: `${1.04 * scale * textScale}vw` }}>
                   {localTeam?.name || 'ARGENTINA'}
                 </span>
                 <div
                   className="rounded-full border border-white/20 bg-slate-900 shadow-md flex items-center justify-center select-none"
-                  style={{ width: `${2.5 * scale}vw`, height: `${2.5 * scale}vw`, fontSize: `${1.56 * scale}vw` }}
+                  style={{ width: `${2.5 * scale}vw`, height: `${2.5 * scale}vw`, fontSize: `${1.56 * scale * textScale}vw` }}
                 >
                   {localTeam?.flag || '🇦🇷'}
                 </div>
@@ -213,7 +214,7 @@ export const OverlayView: React.FC = () => {
 
               {/* Scores & Clock */}
               <div className="flex items-center justify-center w-1/3 z-10" style={{ gap: `${1.25 * scale}vw`, padding: `0 ${1 * scale}vw` }}>
-                <span className="font-sports font-black text-neon-green text-green-400 text-right" style={{ fontSize: `${2.08 * scale}vw`, minWidth: `${2.34 * scale}vw` }}>
+                <span className="font-sports font-black text-neon-green text-green-400 text-right" style={{ fontSize: `${2.08 * scale * textScale}vw`, minWidth: `${2.34 * scale}vw` }}>
                   {localScore}
                 </span>
 
@@ -222,15 +223,15 @@ export const OverlayView: React.FC = () => {
                   className="flex flex-col items-center justify-center bg-slate-950/80 rounded-xl border border-white/5 shadow-inner"
                   style={{ padding: `${0.31 * scale}vw ${0.83 * scale}vw` }}
                 >
-                  <span className="font-sports font-bold text-slate-300 tracking-wider" style={{ fontSize: `${0.94 * scale}vw` }}>
+                  <span className="font-sports font-bold text-slate-300 tracking-wider" style={{ fontSize: `${0.94 * scale * textScale}vw` }}>
                     {settings.match_mode === 'time' ? formatTime(timeLeft) : 'LIVE'}
                   </span>
-                  <span className="uppercase tracking-widest text-amber-500 font-extrabold text-neon-gold" style={{ fontSize: `${0.47 * scale}vw` }}>
+                  <span className="uppercase tracking-widest text-amber-500 font-extrabold text-neon-gold" style={{ fontSize: `${0.47 * scale * textScale}vw` }}>
                     BATTLE
                   </span>
                 </div>
 
-                <span className="font-sports font-black text-neon-red text-red-500 text-left" style={{ fontSize: `${2.08 * scale}vw`, minWidth: `${2.34 * scale}vw` }}>
+                <span className="font-sports font-black text-neon-red text-red-500 text-left" style={{ fontSize: `${2.08 * scale * textScale}vw`, minWidth: `${2.34 * scale}vw` }}>
                   {visitorScore}
                 </span>
               </div>
@@ -239,11 +240,11 @@ export const OverlayView: React.FC = () => {
               <div className="flex items-center w-1/3 justify-start" style={{ gap: `${0.83 * scale}vw` }}>
                 <div
                   className="rounded-full border border-white/20 bg-slate-900 shadow-md flex items-center justify-center select-none"
-                  style={{ width: `${2.5 * scale}vw`, height: `${2.5 * scale}vw`, fontSize: `${1.56 * scale}vw` }}
+                  style={{ width: `${2.5 * scale}vw`, height: `${2.5 * scale}vw`, fontSize: `${1.56 * scale * textScale}vw` }}
                 >
                   {visitorTeam?.flag || '🇧🇷'}
                 </div>
-                <span className="font-sports font-extrabold uppercase tracking-wider text-slate-100 truncate" style={{ fontSize: `${1.04 * scale}vw` }}>
+                <span className="font-sports font-extrabold uppercase tracking-wider text-slate-100 truncate" style={{ fontSize: `${1.04 * scale * textScale}vw` }}>
                   {visitorTeam?.name || 'BRASIL'}
                 </span>
               </div>

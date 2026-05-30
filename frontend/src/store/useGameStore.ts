@@ -68,6 +68,7 @@ export interface GameSettings {
   top_donors_show_name?: string;
   top_donors_show_diamonds?: string;
   top_donors_display?: string;
+  scoreboard_text_scale?: string;
 }
 
 interface GameState {
@@ -160,7 +161,8 @@ export const useGameStore = create<GameState>((set, get) => {
       top_donors_font_family: 'Arial',
       top_donors_bg_opacity: '60',
       top_donors_show_name: 'true',
-      top_donors_show_diamonds: 'true'
+      top_donors_show_diamonds: 'true',
+      scoreboard_text_scale: '100'
     },
     teams: [],
     activeAlert: null,

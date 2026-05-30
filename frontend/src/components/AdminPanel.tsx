@@ -731,6 +731,23 @@ export const AdminPanel: React.FC = () => {
                   />
                 </div>
 
+                {/* Scoreboard Text Scale */}
+                <div className="text-xs">
+                  <label className="block text-[10px] uppercase text-slate-400 font-semibold mb-1 flex justify-between">
+                    <span>Tamaño Textos Marcador (%)</span>
+                    <span className="text-amber-500">{settings.scoreboard_text_scale || '100'}%</span>
+                  </label>
+                  <input
+                    type="range"
+                    min="50"
+                    max="200"
+                    step="5"
+                    value={settings.scoreboard_text_scale || '100'}
+                    onChange={(e) => handleFieldChange('scoreboard_text_scale', e.target.value)}
+                    className="w-full accent-amber-500 bg-slate-900 h-1.5 rounded-lg cursor-pointer mt-2"
+                  />
+                </div>
+
                 {/* Match Limit Modes */}
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div>
