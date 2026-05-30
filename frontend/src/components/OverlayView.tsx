@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useGameStore } from '../store/useGameStore.js';
 import { globalSoundSynth } from '../audio/SoundSynth.js';
 import { Trophy, Zap, Sparkles, Heart, Award } from 'lucide-react';
 import Phaser from 'phaser';
 import { GameScene } from '../game/GameScene.js';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export const OverlayView: React.FC = () => {
   const {
@@ -25,6 +27,23 @@ export const OverlayView: React.FC = () => {
     likeCelebration,
     lastDonor
   } = useGameStore();
+
+  // Poll settings periodically as a fallback for socket updates
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/settings`);
+        const data = await res.json();
+        if (data.settings) {
+          useGameStore.setState({ settings: data.settings });
+        }
+      } catch { /* ignore */ }
+    };
+    fetchSettings();
+    pollRef.current = setInterval(fetchSettings, 3000);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, []);
 
   // Initialize socket connection and sound synthesis reference
   useEffect(() => {
