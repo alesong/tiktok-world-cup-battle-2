@@ -360,8 +360,8 @@ export const OverlayView: React.FC = () => {
                     animationDelay: `${idx * 0.6}s`
                   }}
                 >
-                  {idx === 0 && <span className="absolute -top-11 text-5xl z-10 drop-shadow-lg">👑</span>}
-                  <div className={`rounded-full border-[3px] shadow-lg ${idx === 0 ? 'border-yellow-400 w-14 h-14' : isLocal ? 'border-blue-400/70 w-11 h-11' : 'border-yellow-400/70 w-11 h-11'} bg-slate-800 flex items-center justify-center overflow-hidden`}>
+                  {idx === 0 && <span className="absolute z-10 drop-shadow-lg" style={{ fontSize: `${donorsIconSize * scale * 0.8}px`, top: `-${donorsIconSize * scale * 0.7}px` }}>👑</span>}
+                  <div className="rounded-full border-[3px] shadow-lg bg-slate-800 flex items-center justify-center overflow-hidden" style={{ width: `${donorsIconSize * scale}px`, height: `${donorsIconSize * scale}px`, borderColor: idx === 0 ? '#eab308' : isLocal ? 'rgba(96,165,250,0.7)' : 'rgba(251,191,36,0.7)' }}>
                     <img
                       src={donor.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${donor.username}`}
                       alt={donor.username}
@@ -369,12 +369,12 @@ export const OverlayView: React.FC = () => {
                     />
                   </div>
                   {donorsShowName && (
-                    <span className="text-white text-xs font-bold mt-1.5 px-2 py-0.5 rounded-full whitespace-nowrap" style={{ backgroundColor: `rgba(15, 23, 42, ${donorsBgOpacity})`, fontSize: `${Math.max(10, donorsFontSize - 2)}px`, fontFamily: donorsFontFamily }}>
+                    <span className="text-white font-bold mt-[0.3vw] px-[0.4vw] py-[0.15vw] rounded-full whitespace-nowrap" style={{ backgroundColor: `rgba(15, 23, 42, ${donorsBgOpacity})`, fontSize: `${donorsFontSize * scale}px`, fontFamily: donorsFontFamily }}>
                       {donor.username}
                     </span>
                   )}
                   {donorsShowDiamonds && (
-                    <span className="text-amber-400 text-xs font-bold mt-0.5 px-2 py-0.5 rounded-full whitespace-nowrap" style={{ backgroundColor: `rgba(15, 23, 42, ${donorsBgOpacity})`, fontSize: `${Math.max(10, donorsFontSize - 3)}px`, fontFamily: donorsFontFamily }}>
+                    <span className="text-amber-400 font-bold mt-[0.15vw] px-[0.4vw] py-[0.15vw] rounded-full whitespace-nowrap" style={{ backgroundColor: `rgba(15, 23, 42, ${donorsBgOpacity})`, fontSize: `${(donorsFontSize - 2) * scale}px`, fontFamily: donorsFontFamily }}>
                       {donor.diamonds} 💎
                     </span>
                   )}
