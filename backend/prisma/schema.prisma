@@ -10,6 +10,8 @@ datasource db {
 model TwcSetting {
   key   String @id
   value String?
+
+  @@map("twc_settings")
 }
 
 model TwcTeam {
@@ -19,6 +21,8 @@ model TwcTeam {
   primaryColor   String? @map("primaryColor")
   secondaryColor String? @map("secondaryColor")
   jerseyColor    String? @map("jerseyColor")
+
+  @@map("twc_teams")
 }
 
 model TwcDonor {
@@ -26,6 +30,8 @@ model TwcDonor {
   diamonds  Int?
   teamId    String? @map("teamId")
   avatar    String?
+
+  @@map("twc_donors")
 }
 
 model TwcMatch {
