@@ -162,8 +162,9 @@ export const OverlayView: React.FC = () => {
   const donorsDisplay = settings.top_donors_display || 'list';
   const giftCardScale = parseInt(settings.gift_card_scale || '100', 10) / 100;
   const giftCardMargin = parseInt(settings.gift_card_margin || '100', 10) / 100;
+  const donorsPosition = parseInt(settings.top_donors_position || '100', 10) / 100;
 
-  console.log(`[Overlay] resolution=${resolution} scale=${scale} textScale=${textScale} donorsIconSize=${donorsIconSize} gift_card_margin=${settings.gift_card_margin} giftCardMargin=${giftCardMargin}`);
+  console.log(`[Overlay] resolution=${resolution} scale=${scale} textScale=${textScale} donorsIconSize=${donorsIconSize} gift_card_margin=${settings.gift_card_margin} giftCardMargin=${giftCardMargin} donorsPosition=${donorsPosition}`);
 
   const allTopDonors = donors.slice(0, donorsCount);
 
@@ -335,22 +336,23 @@ export const OverlayView: React.FC = () => {
           </div>
 
           {/* GIFTS AND DONORS HUD */}
-          <div className={`w-full flex pointer-events-none ${isVertical ? 'flex-col items-center gap-[1.5vw]' : 'flex-row justify-between items-start'} ${isVertical ? '' : 'px-[2.5vw]'}`} style={{ marginTop: `${0.83 * scale}vw` }}>
+          <div className={`w-full flex pointer-events-none ${isVertical ? 'flex-col items-center gap-[1.5vw]' : 'flex-row justify-between items-start'} ${isVertical ? '' : 'px-[2.5vw]'}`} style={{ marginTop: `${0.83 * scale * donorsPosition}vw` }}>
             {/* LOCAL SIDE */}
             <div className={`flex flex-col ${isVertical ? 'w-full items-center' : 'items-start'}`} style={{ gap: `${0.63 * scale}vw`, width: isVertical ? '100%' : `${23 * scale}vw` }}>
               {/* Gifts */}
               <div className="flex flex-nowrap items-center" style={{ gap: `${0.42 * giftCardScale * scale * giftCardMargin}vw` }}>
                 {giftListLocal.map(gift => {
                   const isHighlighted = lastDonor?.giftName === gift.name;
+                  const cardScale = isHighlighted ? 1.1 : 1;
                   return (
                     <div
                       key={gift.name}
                       className={`flex flex-col items-center bg-slate-900/80 rounded-xl border transition-all duration-300 ${isHighlighted ? 'border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.9)] z-10' : 'border-white/10 shadow-xl'}`}
-                      style={{ transform: `scale(${giftCardScale * (isHighlighted ? 1.1 : 1)})`, padding: `${0.31 * scale * giftCardMargin}vw`, margin: `0 ${0.21 * scale * giftCardMargin}vw` }}
+                      style={{ padding: `${0.31 * scale * giftCardMargin * giftCardScale}vw`, margin: `0 ${0.21 * scale * giftCardMargin * giftCardScale}vw` }}
                     >
-                      <span className="drop-shadow-lg" style={{ fontSize: `${1.56 * scale}vw`, marginBottom: `${0.1 * scale}vw` }}>{gift.icon}</span>
-                      <span className="font-sports font-bold text-white tracking-wider uppercase text-center" style={{ fontSize: `${0.52 * scale}vw` }}>{gift.value} PASOS</span>
-                      <div className="text-amber-500 font-black animate-pulse" style={{ fontSize: `${1.04 * scale}vw`, marginTop: `${0.1 * scale}vw` }}>➔</div>
+                      <span className="drop-shadow-lg" style={{ fontSize: `${1.56 * scale * giftCardScale * cardScale}vw`, marginBottom: `${0.1 * scale}vw` }}>{gift.icon}</span>
+                      <span className="font-sports font-bold text-white tracking-wider uppercase text-center" style={{ fontSize: `${0.52 * scale * giftCardScale}vw` }}>{gift.value} PASOS</span>
+                      <div className="text-amber-500 font-black animate-pulse" style={{ fontSize: `${1.04 * scale * giftCardScale * cardScale}vw`, marginTop: `${0.1 * scale}vw` }}>➔</div>
                     </div>
                   );
                 })}
@@ -384,15 +386,16 @@ export const OverlayView: React.FC = () => {
               <div className="flex flex-nowrap items-center" style={{ gap: `${0.42 * giftCardScale * scale * giftCardMargin}vw` }}>
                 {giftListVisitor.map(gift => {
                   const isHighlighted = lastDonor?.giftName === gift.name;
+                  const cardScale = isHighlighted ? 1.1 : 1;
                   return (
                     <div
                       key={gift.name}
                       className={`flex flex-col items-center bg-slate-900/80 rounded-xl border transition-all duration-300 ${isHighlighted ? 'border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.9)] z-10' : 'border-white/10 shadow-xl'}`}
-                      style={{ transform: `scale(${giftCardScale * (isHighlighted ? 1.1 : 1)})`, padding: `${0.31 * scale * giftCardMargin}vw`, margin: `0 ${0.21 * scale * giftCardMargin}vw` }}
+                      style={{ padding: `${0.31 * scale * giftCardMargin * giftCardScale}vw`, margin: `0 ${0.21 * scale * giftCardMargin * giftCardScale}vw` }}
                     >
-                      <span className="drop-shadow-lg" style={{ fontSize: `${1.56 * scale}vw`, marginBottom: `${0.1 * scale}vw` }}>{gift.icon}</span>
-                      <span className="font-sports font-bold text-white tracking-wider uppercase text-center" style={{ fontSize: `${0.52 * scale}vw` }}>{gift.value} PASOS</span>
-                      <div className="text-amber-500 font-black animate-pulse" style={{ fontSize: `${1.04 * scale}vw`, marginTop: `${0.1 * scale}vw` }}>←</div>
+                      <span className="drop-shadow-lg" style={{ fontSize: `${1.56 * scale * giftCardScale * cardScale}vw`, marginBottom: `${0.1 * scale}vw` }}>{gift.icon}</span>
+                      <span className="font-sports font-bold text-white tracking-wider uppercase text-center" style={{ fontSize: `${0.52 * scale * giftCardScale}vw` }}>{gift.value} PASOS</span>
+                      <div className="text-amber-500 font-black animate-pulse" style={{ fontSize: `${1.04 * scale * giftCardScale * cardScale}vw`, marginTop: `${0.1 * scale}vw` }}>←</div>
                     </div>
                   );
                 })}
