@@ -125,7 +125,8 @@ export const OverlayView: React.FC = () => {
 
   const resolution = settings.overlay_resolution || '1920x1080';
   const isVertical = resolution === '1080x1920';
-  const scale = parseInt(resolution.split('x')[0], 10) / 1920;
+  const parsedWidth = parseInt(resolution.split('x')[0], 10);
+  const scale = parsedWidth > 0 ? parsedWidth / 1920 : 1;
   const textScale = parseInt(settings.scoreboard_text_scale || '100', 10) / 100;
 
   // Parse gifts from settings
@@ -156,7 +157,7 @@ export const OverlayView: React.FC = () => {
   const donorsShowDiamonds = settings.top_donors_show_diamonds !== 'false';
   const donorsBorderWidth = parseInt(settings.top_donors_border_width || '3', 10);
 
-  console.log(`[Overlay] scoreboard_text_scale=${settings.scoreboard_text_scale} textScale=${textScale} top_donors_icon_size=${settings.top_donors_icon_size} donorsIconSize=${donorsIconSize} scale=${scale}`);
+  console.log(`[Overlay] resolution=${resolution} scale=${scale} scoreboard_text_scale=${settings.scoreboard_text_scale} textScale=${textScale} top_donors_icon_size=${settings.top_donors_icon_size} donorsIconSize=${donorsIconSize}`);
 
   const topDonorsLocal = donors.filter(d => d.teamId === localTeam?.id).slice(0, donorsCount);
   const topDonorsVisitor = donors.filter(d => d.teamId === visitorTeam?.id).slice(0, donorsCount);
