@@ -346,7 +346,7 @@ export const OverlayView: React.FC = () => {
                     <div
                       key={gift.name}
                       className={`flex flex-col items-center bg-slate-900/80 rounded-xl border transition-all duration-300 ${isHighlighted ? 'border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.9)] z-10' : 'border-white/10 shadow-xl'}`}
-                      style={{ transform: `scale(${giftCardScale * (isHighlighted ? 1.1 : 1)})`, padding: `${0.31 * scale * giftCardMargin}vw` }}
+                      style={{ transform: `scale(${giftCardScale * (isHighlighted ? 1.1 : 1)})`, padding: `${0.31 * scale * giftCardMargin}vw`, margin: `0 ${0.21 * scale * giftCardMargin}vw` }}
                     >
                       <span className="drop-shadow-lg" style={{ fontSize: `${1.56 * scale}vw`, marginBottom: `${0.1 * scale}vw` }}>{gift.icon}</span>
                       <span className="font-sports font-bold text-white tracking-wider uppercase text-center" style={{ fontSize: `${0.52 * scale}vw` }}>{gift.value} PASOS</span>
@@ -388,7 +388,7 @@ export const OverlayView: React.FC = () => {
                     <div
                       key={gift.name}
                       className={`flex flex-col items-center bg-slate-900/80 rounded-xl border transition-all duration-300 ${isHighlighted ? 'border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.9)] z-10' : 'border-white/10 shadow-xl'}`}
-                      style={{ transform: `scale(${giftCardScale * (isHighlighted ? 1.1 : 1)})`, padding: `${0.31 * scale * giftCardMargin}vw` }}
+                      style={{ transform: `scale(${giftCardScale * (isHighlighted ? 1.1 : 1)})`, padding: `${0.31 * scale * giftCardMargin}vw`, margin: `0 ${0.21 * scale * giftCardMargin}vw` }}
                     >
                       <span className="drop-shadow-lg" style={{ fontSize: `${1.56 * scale}vw`, marginBottom: `${0.1 * scale}vw` }}>{gift.icon}</span>
                       <span className="font-sports font-bold text-white tracking-wider uppercase text-center" style={{ fontSize: `${0.52 * scale}vw` }}>{gift.value} PASOS</span>
