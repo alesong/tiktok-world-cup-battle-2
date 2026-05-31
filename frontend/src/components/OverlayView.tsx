@@ -339,7 +339,7 @@ export const OverlayView: React.FC = () => {
                       ) : (
                         <span className="text-amber-500 font-black" style={{ fontSize: `${0.83 * scale}vw`, width: `${1.04 * scale}vw` }}>#{idx + 1}</span>
                       )}
-                      <img src={donor.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${donor.username}`} className="rounded-full border border-white/20" alt="avatar" style={{ width: `${donorsIconSize * scale}px`, height: `${donorsIconSize * scale}px` }} />
+                      <img src={donor.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${donor.username}`} className="rounded-full border border-white/20" alt="avatar" width={donorsIconSize * scale} height={donorsIconSize * scale} style={{ width: `${donorsIconSize * scale}px`, height: `${donorsIconSize * scale}px` }} />
                       {donorsShowName && <span className="text-white font-bold truncate flex-1" style={{ fontSize: `${donorsFontSize * scale}px`, fontFamily: donorsFontFamily }}>{donor.username}</span>}
                       {donorsShowDiamonds && <span className="text-amber-400 font-bold" style={{ fontSize: `${donorsFontSize * scale}px`, fontFamily: donorsFontFamily }}>{donor.diamonds} 💎</span>}
                     </div>
@@ -482,7 +482,7 @@ export const OverlayView: React.FC = () => {
       >
         {lastDonor && (
           <div className="flex flex-col items-center gap-4 bg-slate-900/95 px-12 py-8 rounded-3xl border-2 border-cyan-400 shadow-[0_0_60px_rgba(6,182,212,0.6)]">
-            <img src={lastDonor.avatar} alt="avatar" className="w-28 h-28 rounded-full border-4 border-cyan-400 shadow-xl" />
+            <img src={lastDonor.avatar} alt="avatar" className="rounded-full border-4 border-cyan-400 shadow-xl" style={{ width: `${Math.max(donorsIconSize * scale * 3, 48)}px`, height: `${Math.max(donorsIconSize * scale * 3, 48)}px` }} />
             <div className="flex flex-col items-center gap-1 text-center">
               <span className="text-4xl font-black text-white text-center">{lastDonor.username}</span>
               <span className="text-2xl font-bold text-cyan-400 uppercase tracking-widest text-center">¡Está jugando en la cancha!</span>
@@ -657,7 +657,8 @@ export const OverlayView: React.FC = () => {
                         <img
                           src={donor.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${donor.username}`}
                           alt="avatar"
-                          className={`rounded-full border-4 ${idx === 0 ? 'w-24 h-24 border-yellow-500' : 'w-20 h-20 border-slate-400'}`}
+                          className={`rounded-full border-4 ${idx === 0 ? 'border-yellow-500' : 'border-slate-400'}`}
+                          style={{ width: `${Math.max(donorsIconSize * scale * (idx === 0 ? 3 : 2.5), 48)}px`, height: `${Math.max(donorsIconSize * scale * (idx === 0 ? 3 : 2.5), 48)}px` }}
                         />
                       </div>
                       <span className="font-sports font-bold text-xl text-white truncate max-w-[150px]">{donor.username}</span>
