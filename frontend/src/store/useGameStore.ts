@@ -293,6 +293,7 @@ export const useGameStore = create<GameState>((set, get) => {
       });
 
       socket.on('init_state', (data: any) => {
+        console.log('[Store] init_state received, top_donors_icon_size:', data.settings?.top_donors_icon_size);
         set({
           matchState: data.matchState,
           ballProgress: data.ballProgress,

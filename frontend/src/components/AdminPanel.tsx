@@ -253,6 +253,7 @@ export const AdminPanel: React.FC = () => {
   const handleFieldChange = (key: string, val: any) => {
     const fields = { [key]: val };
     useGameStore.setState({ settings: { ...useGameStore.getState().settings, [key]: val } });
+    console.log(`[Admin] Saving ${key} = ${val}`);
     saveSettings(fields);
   };
 

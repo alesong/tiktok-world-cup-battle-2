@@ -128,6 +128,8 @@ export const OverlayView: React.FC = () => {
   const donorsShowDiamonds = settings.top_donors_show_diamonds !== 'false';
   const donorsBorderWidth = parseInt(settings.top_donors_border_width || '3', 10);
 
+  console.log(`[Overlay] top_donors_icon_size = ${settings.top_donors_icon_size} → donorsIconSize = ${donorsIconSize}`);
+
   const topDonorsLocal = donors.filter(d => d.teamId === localTeam?.id).slice(0, donorsCount);
   const topDonorsVisitor = donors.filter(d => d.teamId === visitorTeam?.id).slice(0, donorsCount);
   const donorsDisplay = settings.top_donors_display || 'list';
