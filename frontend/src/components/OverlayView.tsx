@@ -36,7 +36,8 @@ export const OverlayView: React.FC = () => {
         const res = await fetch(`${API_BASE_URL}/api/settings`);
         const data = await res.json();
         if (data.settings) {
-          useGameStore.setState({ settings: data.settings });
+          const currentSettings = useGameStore.getState().settings;
+          useGameStore.setState({ settings: { ...currentSettings, ...data.settings } });
         }
       } catch { /* ignore */ }
     };
@@ -329,7 +330,13 @@ export const OverlayView: React.FC = () => {
                   <h3 className={`font-sports text-white/80 tracking-widest uppercase ${isVertical ? 'text-center' : ''}`} style={{ fontSize: `${0.52 * scale}vw`, marginBottom: `${0.1 * scale}vw` }}>Top Jugadores</h3>
                   {topDonorsLocal.map((donor, idx) => (
                     <div key={donor.username} className={`flex items-center rounded-lg border border-white/5 shadow-md ${donorsShowName ? 'w-full' : 'w-fit'}`} style={{ gap: `${0.42 * scale}vw`, padding: `${0.31 * scale}vw`, backgroundColor: `rgba(15, 23, 42, ${donorsBgOpacity})` }}>
-                      <span className="text-amber-500 font-black" style={{ fontSize: `${0.83 * scale}vw`, width: `${1.04 * scale}vw` }}>#{idx + 1}</span>
+                      {idx === 0 ? (
+                        <span className="relative" style={{ width: `${1.04 * scale}vw`, height: `${0.83 * scale}vw` }}>
+                          <span className="absolute drop-shadow-lg" style={{ fontSize: `${1.2 * scale}vw`, top: '-50%', left: '-20%' }}>👑</span>
+                        </span>
+                      ) : (
+                        <span className="text-amber-500 font-black" style={{ fontSize: `${0.83 * scale}vw`, width: `${1.04 * scale}vw` }}>#{idx + 1}</span>
+                      )}
                       <img src={donor.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${donor.username}`} className="rounded-full border border-white/20" alt="avatar" style={{ width: `${donorsIconSize * scale}px`, height: `${donorsIconSize * scale}px` }} />
                       {donorsShowName && <span className="text-white font-bold truncate flex-1" style={{ fontSize: `${donorsFontSize * scale}px`, fontFamily: donorsFontFamily }}>{donor.username}</span>}
                       {donorsShowDiamonds && <span className="text-amber-400 font-bold" style={{ fontSize: `${donorsFontSize * scale}px`, fontFamily: donorsFontFamily }}>{donor.diamonds} 💎</span>}
@@ -368,7 +375,13 @@ export const OverlayView: React.FC = () => {
                       {donorsShowDiamonds && <span className="text-amber-400 font-bold" style={{ fontSize: `${donorsFontSize * scale}px`, fontFamily: donorsFontFamily }}>{donor.diamonds} 💎</span>}
                       {donorsShowName && <span className="text-white font-bold truncate flex-1 text-right" style={{ fontSize: `${donorsFontSize * scale}px`, fontFamily: donorsFontFamily }}>{donor.username}</span>}
                       <img src={donor.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${donor.username}`} className="rounded-full border border-white/20" alt="avatar" style={{ width: `${donorsIconSize * scale}px`, height: `${donorsIconSize * scale}px` }} />
-                      <span className="text-amber-500 font-black text-right" style={{ fontSize: `${0.83 * scale}vw`, width: `${1.04 * scale}vw` }}>#{idx + 1}</span>
+                      {idx === 0 ? (
+                        <span className="relative" style={{ width: `${1.04 * scale}vw`, height: `${0.83 * scale}vw` }}>
+                          <span className="absolute drop-shadow-lg" style={{ fontSize: `${1.2 * scale}vw`, top: '-50%', left: '-20%' }}>👑</span>
+                        </span>
+                      ) : (
+                        <span className="text-amber-500 font-black text-right" style={{ fontSize: `${0.83 * scale}vw`, width: `${1.04 * scale}vw` }}>#{idx + 1}</span>
+                      )}
                     </div>
                   ))}
                 </div>
