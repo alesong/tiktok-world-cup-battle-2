@@ -20,6 +20,17 @@ export const TopDonorsOverlay: React.FC = () => {
     initSocket();
   }, []);
 
+  // Load settings from localStorage on mount (cross-tab sync)
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('tiktok_settings');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        useGameStore.setState({ settings: { ...useGameStore.getState().settings, ...parsed } });
+      }
+    } catch { /* ignore */ }
+  }, []);
+
   // Poll settings periodically as fallback for socket updates
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   useEffect(() => {
@@ -36,6 +47,20 @@ export const TopDonorsOverlay: React.FC = () => {
     fetchSettings();
     pollRef.current = setInterval(fetchSettings, 3000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, []);
+
+  // Cross-tab settings sync via localStorage
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'tiktok_settings' && e.newValue) {
+        try {
+          const stored = JSON.parse(e.newValue);
+          useGameStore.setState({ settings: { ...useGameStore.getState().settings, ...stored } });
+        } catch { /* ignore */ }
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
   return (

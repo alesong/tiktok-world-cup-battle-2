@@ -252,7 +252,9 @@ export const AdminPanel: React.FC = () => {
 
   const handleFieldChange = (key: string, val: any) => {
     const fields = { [key]: val };
-    useGameStore.setState({ settings: { ...useGameStore.getState().settings, [key]: val } });
+    const newSettings = { ...useGameStore.getState().settings, [key]: val };
+    useGameStore.setState({ settings: newSettings });
+    localStorage.setItem('tiktok_settings', JSON.stringify(newSettings));
     console.log(`[Admin] Saving ${key} = ${val}`);
     saveSettings(fields);
   };
