@@ -21,6 +21,14 @@ const DEFAULT_SETTINGS: { key: string; value: string }[] = [
   { key: 'match_state', value: 'idle' },
   { key: 'overlay_resolution', value: '1920x1080' },
   { key: 'gift_values', value: '{"Rosa":1,"TikTok":1,"Perfume":20,"Corazon":5,"Sombrero":99,"Leon":29999,"Universo":34999}' },
+  { key: 'player_scale', value: '100' },
+  { key: 'ball_scale', value: '100' },
+  { key: 'scoreboard_text_scale', value: '100' },
+  { key: 'top_donors_count', value: '3' },
+  { key: 'top_donors_display', value: 'list' },
+  { key: 'speech_follow_text', value: 'también quiere entrar a la cancha' },
+  { key: 'speech_gift_text', value: 'tiene la pelota' },
+  { key: 'speech_goal_text', value: 'hizo gol' },
 ];
 
 const DEFAULT_TEAMS: { id: string; name: string; flag: string; primaryColor: string; secondaryColor: string; jerseyColor: string }[] = [

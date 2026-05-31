@@ -3,6 +3,10 @@ import { io, Socket } from 'socket.io-client';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+// Client-side dedup maps to prevent duplicate speech from multiple socket instances
+const spokenFollowTimestamps = new Map<string, number>();
+const SPOKEN_DEDUP_MS = 5000;
+
 export interface Team {
   id: string;
   name: string;
@@ -478,8 +482,14 @@ export const useGameStore = create<GameState>((set, get) => {
               details: 'es un nuevo seguidor',
               avatar: action.avatar
             });
-            const followText = get().settings.speech_follow_text || 'también quiere entrar a la cancha';
-            get().speak(`${action.username} ${followText}`);
+            // Client-side dedup to prevent double speech from duplicate events
+            const followKey = (action.username || '').toLowerCase();
+            const lastFollowTime = spokenFollowTimestamps.get(followKey);
+            if (!lastFollowTime || Date.now() - lastFollowTime > SPOKEN_DEDUP_MS) {
+              const followText = get().settings.speech_follow_text || 'también quiere entrar a la cancha';
+              get().speak(`${action.username} ${followText}`);
+              spokenFollowTimestamps.set(followKey, Date.now());
+            }
             break;
           case 'join':
             get().setAlert({

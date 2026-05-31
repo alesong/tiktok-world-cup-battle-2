@@ -412,13 +412,14 @@ export class TikTokLiveService {
     const matchState = await getSettingValue('match_state');
     if (matchState !== 'playing') return;
 
+    const key = event.username.toLowerCase();
     const now = Date.now();
-    const last = this.recentFollows.get(event.username);
+    const last = this.recentFollows.get(key);
     if (last && now - last < this.followDedupMs) {
       console.log(`[DEDUP] Follow de ${event.username} ignorado (repetido en ${now - last}ms)`);
       return;
     }
-    this.recentFollows.set(event.username, now);
+    this.recentFollows.set(key, now);
 
     const teamId = await getSettingValue('local_team_id') || 'ARG';
 

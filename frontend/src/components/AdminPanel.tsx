@@ -69,6 +69,7 @@ export const AdminPanel: React.FC = () => {
   const [volume, setVolume] = useState(0.5);
   const [giftCardScale, setGiftCardScale] = useState(100);
   const [scoreboardTextScale, setScoreboardTextScale] = useState(100);
+  const [ballScale, setBallScale] = useState(100);
   const [tiktokUser, setTiktokUser] = useState('');
   
   // Custom Gift Valuations Table State
@@ -158,6 +159,7 @@ export const AdminPanel: React.FC = () => {
       setVolume(parseFloat(settings.volume || '0.5'));
       setGiftCardScale(parseInt(settings.gift_card_scale || '100', 10));
       setScoreboardTextScale(parseInt(settings.scoreboard_text_scale || '100', 10));
+      setBallScale(parseInt(settings.ball_scale || '100', 10));
       
       if (settings.gift_values) {
         try {
@@ -776,15 +778,19 @@ export const AdminPanel: React.FC = () => {
                 <div className="text-xs">
                   <label className="block text-[10px] uppercase text-slate-400 font-semibold mb-1 flex justify-between">
                     <span>Tamaño del Balón (%)</span>
-                    <span className="text-amber-500">{settings.ball_scale || '100'}%</span>
+                    <span className="text-amber-500">{ballScale}%</span>
                   </label>
                   <input
                     type="range"
                     min="50"
                     max="200"
                     step="5"
-                    value={settings.ball_scale || '100'}
-                    onChange={(e) => handleFieldChange('ball_scale', e.target.value)}
+                    value={ballScale}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      setBallScale(val);
+                      handleFieldChange('ball_scale', e.target.value);
+                    }}
                     className="w-full accent-amber-500 bg-slate-900 h-1.5 rounded-lg cursor-pointer mt-2"
                   />
                 </div>

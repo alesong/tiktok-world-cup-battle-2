@@ -136,6 +136,9 @@ export const OverlayView: React.FC = () => {
   // Random positions for pitch display mode
   const [donorPositions, setDonorPositions] = useState<Record<string, { x: number; y: number }>>({});
 
+  // Content-based key to detect actual donor roster changes
+  const donorsKey = allTopDonors.map(d => d.username).join(',');
+
   // Set initial positions when donors change in pitch mode
   useEffect(() => {
     if (donorsDisplay !== 'pitch') return;
@@ -146,13 +149,32 @@ export const OverlayView: React.FC = () => {
         y: 30 + Math.random() * 40
       };
     });
-    if (Object.keys(positions).length) setDonorPositions(positions);
-  }, [donorsDisplay, allTopDonors.length]);
+    setDonorPositions(prev => ({ ...prev, ...positions }));
+  }, [donorsDisplay, donorsKey]);
 
-  // Auto-move randomly only during playing (slow, short distances)
+  // Ensure any new donor without a position gets one (catches content changes without length change)
   useEffect(() => {
-    if (donorsDisplay !== 'pitch' || matchState !== 'playing') return;
+    if (donorsDisplay !== 'pitch') return;
+    const missing = allTopDonors.filter(d => !donorPositions[d.username]);
+    if (missing.length === 0) return;
+    setDonorPositions(prev => {
+      const next = { ...prev };
+      missing.forEach(d => {
+        next[d.username] = {
+          x: 25 + Math.random() * 50,
+          y: 30 + Math.random() * 40
+        };
+      });
+      return next;
+    });
+  }, [donorsDisplay, donorsKey]);
+
+  // Auto-move randomly (keeps interval alive throughout match, pauses movement during breaks)
+  useEffect(() => {
+    if (donorsDisplay !== 'pitch') return;
+    const isActive = matchState === 'playing';
     const move = () => {
+      if (!isActive) return;
       setDonorPositions(prev => {
         const next = { ...prev };
         Object.keys(next).forEach(k => {
@@ -165,7 +187,7 @@ export const OverlayView: React.FC = () => {
         return next;
       });
     };
-    move();
+    if (isActive) move();
     const id = window.setInterval(move, 7000 + Math.random() * 5000);
     return () => clearInterval(id);
   }, [donorsDisplay, matchState]);

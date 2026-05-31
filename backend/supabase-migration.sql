@@ -58,7 +58,15 @@ INSERT INTO twc_settings (key, value) VALUES
   ('ball_progress', '0'),
   ('match_state', 'idle'),
   ('overlay_resolution', '1920x1080'),
-  ('gift_values', '{"Rosa":1,"TikTok":1,"Perfume":20,"Corazon":5,"Sombrero":99,"Leon":29999,"Universo":34999}')
+  ('gift_values', '{"Rosa":1,"TikTok":1,"Perfume":20,"Corazon":5,"Sombrero":99,"Leon":29999,"Universo":34999}'),
+  ('player_scale', '100'),
+  ('ball_scale', '100'),
+  ('scoreboard_text_scale', '100'),
+  ('top_donors_count', '3'),
+  ('top_donors_display', 'list'),
+  ('speech_follow_text', 'también quiere entrar a la cancha'),
+  ('speech_gift_text', 'tiene la pelota'),
+  ('speech_goal_text', 'hizo gol')
 ON CONFLICT (key) DO NOTHING;
 
 -- Seed teams
