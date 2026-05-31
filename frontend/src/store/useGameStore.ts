@@ -50,6 +50,7 @@ export interface GameSettings {
   donor_card_y?: string;
   donor_card_scale?: string;
   gift_card_scale?: string;
+  gift_card_margin?: string;
   player_scale?: string;
   event_multiplier: string;
   event_gold_goal: string;
@@ -154,6 +155,7 @@ export const useGameStore = create<GameState>((set, get) => {
       donor_card_y: '50',
       donor_card_scale: '100',
       player_scale: '100',
+      gift_card_margin: '100',
       event_multiplier: '1',
       event_gold_goal: 'false',
       event_penalty: 'none',

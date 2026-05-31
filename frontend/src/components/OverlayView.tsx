@@ -163,6 +163,7 @@ export const OverlayView: React.FC = () => {
   const topDonorsVisitor = donors.filter(d => d.teamId === visitorTeam?.id).slice(0, donorsCount);
   const donorsDisplay = settings.top_donors_display || 'list';
   const giftCardScale = parseInt(settings.gift_card_scale || '100', 10) / 100;
+  const giftCardMargin = parseInt(settings.gift_card_margin || '100', 10) / 100;
 
   const allTopDonors = donors.slice(0, donorsCount);
 
@@ -338,14 +339,14 @@ export const OverlayView: React.FC = () => {
             {/* LOCAL SIDE */}
             <div className={`flex flex-col ${isVertical ? 'w-full items-center' : 'items-start'}`} style={{ gap: `${0.63 * scale}vw`, width: isVertical ? '100%' : `${23 * scale}vw` }}>
               {/* Gifts */}
-              <div className="flex flex-nowrap items-center" style={{ gap: `${0.42 * giftCardScale * scale}vw` }}>
+              <div className="flex flex-nowrap items-center" style={{ gap: `${0.42 * giftCardScale * scale * giftCardMargin}vw` }}>
                 {giftListLocal.map(gift => {
                   const isHighlighted = lastDonor?.giftName === gift.name;
                   return (
                     <div
                       key={gift.name}
                       className={`flex flex-col items-center bg-slate-900/80 rounded-xl border transition-all duration-300 ${isHighlighted ? 'border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.9)] z-10' : 'border-white/10 shadow-xl'}`}
-                      style={{ transform: `scale(${giftCardScale * (isHighlighted ? 1.1 : 1)})`, padding: `${0.31 * scale}vw` }}
+                      style={{ transform: `scale(${giftCardScale * (isHighlighted ? 1.1 : 1)})`, padding: `${0.31 * scale * giftCardMargin}vw` }}
                     >
                       <span className="drop-shadow-lg" style={{ fontSize: `${1.56 * scale}vw`, marginBottom: `${0.1 * scale}vw` }}>{gift.icon}</span>
                       <span className="font-sports font-bold text-white tracking-wider uppercase text-center" style={{ fontSize: `${0.52 * scale}vw` }}>{gift.value} PASOS</span>
@@ -380,14 +381,14 @@ export const OverlayView: React.FC = () => {
             {/* VISITOR SIDE */}
             <div className={`flex flex-col ${isVertical ? 'w-full items-center' : 'items-end'}`} style={{ gap: `${0.63 * scale}vw`, width: isVertical ? '100%' : `${23 * scale}vw` }}>
               {/* Gifts */}
-              <div className="flex flex-nowrap items-center" style={{ gap: `${0.42 * giftCardScale * scale}vw` }}>
+              <div className="flex flex-nowrap items-center" style={{ gap: `${0.42 * giftCardScale * scale * giftCardMargin}vw` }}>
                 {giftListVisitor.map(gift => {
                   const isHighlighted = lastDonor?.giftName === gift.name;
                   return (
                     <div
                       key={gift.name}
                       className={`flex flex-col items-center bg-slate-900/80 rounded-xl border transition-all duration-300 ${isHighlighted ? 'border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.9)] z-10' : 'border-white/10 shadow-xl'}`}
-                      style={{ transform: `scale(${giftCardScale * (isHighlighted ? 1.1 : 1)})`, padding: `${0.31 * scale}vw` }}
+                      style={{ transform: `scale(${giftCardScale * (isHighlighted ? 1.1 : 1)})`, padding: `${0.31 * scale * giftCardMargin}vw` }}
                     >
                       <span className="drop-shadow-lg" style={{ fontSize: `${1.56 * scale}vw`, marginBottom: `${0.1 * scale}vw` }}>{gift.icon}</span>
                       <span className="font-sports font-bold text-white tracking-wider uppercase text-center" style={{ fontSize: `${0.52 * scale}vw` }}>{gift.value} PASOS</span>

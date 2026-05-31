@@ -68,6 +68,7 @@ export const AdminPanel: React.FC = () => {
   const [matchLimit, setMatchLimit] = useState(3);
   const [volume, setVolume] = useState(0.5);
   const [giftCardScale, setGiftCardScale] = useState(100);
+  const [giftCardMargin, setGiftCardMargin] = useState(100);
   const [scoreboardTextScale, setScoreboardTextScale] = useState(100);
   const [ballScale, setBallScale] = useState(100);
   const [tiktokUser, setTiktokUser] = useState('');
@@ -158,6 +159,7 @@ export const AdminPanel: React.FC = () => {
       setMatchLimit(parseInt(settings.match_limit || '3', 10));
       setVolume(parseFloat(settings.volume || '0.5'));
       setGiftCardScale(parseInt(settings.gift_card_scale || '100', 10));
+      setGiftCardMargin(parseInt(settings.gift_card_margin || '100', 10));
       setScoreboardTextScale(parseInt(settings.scoreboard_text_scale || '100', 10));
       setBallScale(parseInt(settings.ball_scale || '100', 10));
       
@@ -809,7 +811,7 @@ export const AdminPanel: React.FC = () => {
                   <input
                     type="range"
                     min="50"
-                    max="200"
+                    max="300"
                     step="5"
                     value={scoreboardTextScale}
                     onChange={(e) => {
@@ -1374,7 +1376,7 @@ export const AdminPanel: React.FC = () => {
                   <input
                     type="range"
                     min="50"
-                    max="200"
+                    max="300"
                     step="5"
                     value={giftCardScale}
                     onChange={(e) => {
@@ -1385,6 +1387,26 @@ export const AdminPanel: React.FC = () => {
                     className="w-full accent-amber-500 bg-slate-900 h-1.5 rounded-lg cursor-pointer"
                   />
                   <span className="font-bold text-amber-500 min-w-[3ch] text-right">{giftCardScale}%</span>
+                </div>
+                {/* Gift Margin Control */}
+                <div className="flex items-center gap-3 text-xs mt-2">
+                  <label className="block text-[10px] uppercase text-slate-400 font-semibold whitespace-nowrap">
+                    Margen Regalos (%)
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="300"
+                    step="5"
+                    value={giftCardMargin}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      setGiftCardMargin(val);
+                      handleFieldChange('gift_card_margin', val);
+                    }}
+                    className="w-full accent-amber-500 bg-slate-900 h-1.5 rounded-lg cursor-pointer"
+                  />
+                  <span className="font-bold text-amber-500 min-w-[3ch] text-right">{giftCardMargin}%</span>
                 </div>
 
                 {/* Table grid */}
