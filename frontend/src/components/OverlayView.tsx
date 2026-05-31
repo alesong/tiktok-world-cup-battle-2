@@ -157,13 +157,13 @@ export const OverlayView: React.FC = () => {
   const donorsShowDiamonds = settings.top_donors_show_diamonds !== 'false';
   const donorsBorderWidth = parseInt(settings.top_donors_border_width || '3', 10);
 
-  console.log(`[Overlay] resolution=${resolution} scale=${scale} scoreboard_text_scale=${settings.scoreboard_text_scale} textScale=${textScale} top_donors_icon_size=${settings.top_donors_icon_size} donorsIconSize=${donorsIconSize}`);
-
   const topDonorsLocal = donors.filter(d => d.teamId === localTeam?.id).slice(0, donorsCount);
   const topDonorsVisitor = donors.filter(d => d.teamId === visitorTeam?.id).slice(0, donorsCount);
   const donorsDisplay = settings.top_donors_display || 'list';
   const giftCardScale = parseInt(settings.gift_card_scale || '100', 10) / 100;
   const giftCardMargin = parseInt(settings.gift_card_margin || '100', 10) / 100;
+
+  console.log(`[Overlay] resolution=${resolution} scale=${scale} textScale=${textScale} donorsIconSize=${donorsIconSize} gift_card_margin=${settings.gift_card_margin} giftCardMargin=${giftCardMargin}`);
 
   const allTopDonors = donors.slice(0, donorsCount);
 
