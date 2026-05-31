@@ -1,6 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useGameStore } from '../store/useGameStore.js';
 import { Trophy, Star } from 'lucide-react';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export const TopDonorsOverlay: React.FC = () => {
   const { initSocket, donors, settings } = useGameStore();
@@ -16,6 +18,24 @@ export const TopDonorsOverlay: React.FC = () => {
 
   useEffect(() => {
     initSocket();
+  }, []);
+
+  // Poll settings periodically as fallback for socket updates
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/settings`);
+        const data = await res.json();
+        if (data.settings) {
+          const currentSettings = useGameStore.getState().settings;
+          useGameStore.setState({ settings: { ...currentSettings, ...data.settings }, donors: data.donors || [] });
+        }
+      } catch { /* ignore */ }
+    };
+    fetchSettings();
+    pollRef.current = setInterval(fetchSettings, 3000);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, []);
 
   return (
@@ -52,6 +72,7 @@ export const TopDonorsOverlay: React.FC = () => {
                     {index + 1}
                   </span>
                   <img
+                    key={`${d.username}-${iconSize}`}
                     src={d.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${d.username}`}
                     alt="avatar"
                     className="rounded-full border border-white/10"
