@@ -321,6 +321,7 @@ export const useGameStore = create<GameState>((set, get) => {
 
       // Synchronize partial details dynamically
       socket.on('game_state_update', (data: any) => {
+        const prevMatchState = get().matchState;
         const updates: Partial<GameState> = {};
         if (data.matchState !== undefined) updates.matchState = data.matchState;
         if (data.ballProgress !== undefined) updates.ballProgress = data.ballProgress;
@@ -332,6 +333,11 @@ export const useGameStore = create<GameState>((set, get) => {
         if (data.donors !== undefined) updates.donors = data.donors;
 
         set(updates);
+
+        // Whistle when game resumes after goal celebration (players return to center)
+        if (data.matchState === 'playing' && prevMatchState === 'celebrating') {
+          get().triggerSound('whistle');
+        }
 
         // Handle Time Mode ticking
         if (data.matchState === 'playing' && data.settings?.match_mode === 'time') {
