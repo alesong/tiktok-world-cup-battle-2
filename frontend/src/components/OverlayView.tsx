@@ -125,6 +125,7 @@ export const OverlayView: React.FC = () => {
   const donorsBgOpacity = parseInt(settings.top_donors_bg_opacity || '60', 10) / 100;
   const donorsShowName = settings.top_donors_show_name !== 'false';
   const donorsShowDiamonds = settings.top_donors_show_diamonds !== 'false';
+  const donorsBorderWidth = parseInt(settings.top_donors_border_width || '3', 10);
 
   const topDonorsLocal = donors.filter(d => d.teamId === localTeam?.id).slice(0, donorsCount);
   const topDonorsVisitor = donors.filter(d => d.teamId === visitorTeam?.id).slice(0, donorsCount);
@@ -376,55 +377,6 @@ export const OverlayView: React.FC = () => {
           </div>
         </div>
 
-        {/* PITCH MODE: Floating Top Donors */}
-        {donorsDisplay === 'pitch' && allTopDonors.length > 0 && (
-          <div className="absolute inset-0 z-5 pointer-events-none" style={{ top: '30%', bottom: '14%' }}>
-            <style>{`
-              @keyframes donor-float {
-                0%, 100% { transform: translate(-50%, -50%) translateY(0px); }
-                50% { transform: translate(-50%, -50%) translateY(-10px); }
-              }
-            `}</style>
-            {allTopDonors.map((donor, idx) => {
-              const pos = donorPositions[donor.username];
-              if (!pos) return null;
-              const isLocal = donor.teamId === localTeam?.id;
-              return (
-                <div
-                  key={donor.username}
-                  className="absolute flex flex-col items-center transition-all duration-15000 ease-in-out"
-                  style={{
-                    left: `${pos.x}%`,
-                    top: `${pos.y}%`,
-                    transform: 'translate(-50%, -50%)',
-                    animation: `donor-float ${2.5 + (idx * 0.3)}s ease-in-out infinite`,
-                    animationDelay: `${idx * 0.6}s`
-                  }}
-                >
-                  {idx === 0 && <span className="absolute z-10 drop-shadow-lg" style={{ fontSize: `${donorsIconSize * scale * 0.8}px`, top: `-${donorsIconSize * scale * 0.7}px` }}>👑</span>}
-                  <div className="rounded-full border-[3px] shadow-lg bg-slate-800 flex items-center justify-center overflow-hidden" style={{ width: `${donorsIconSize * scale}px`, height: `${donorsIconSize * scale}px`, borderColor: idx === 0 ? '#eab308' : isLocal ? 'rgba(96,165,250,0.7)' : 'rgba(251,191,36,0.7)' }}>
-                    <img
-                      src={donor.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${donor.username}`}
-                      alt={donor.username}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  {donorsShowName && (
-                    <span className="text-white font-bold mt-[0.3vw] px-[0.4vw] py-[0.15vw] rounded-full whitespace-nowrap" style={{ backgroundColor: `rgba(15, 23, 42, ${donorsBgOpacity})`, fontSize: `${donorsFontSize * scale}px`, fontFamily: donorsFontFamily }}>
-                      {donor.username}
-                    </span>
-                  )}
-                  {donorsShowDiamonds && (
-                    <span className="text-amber-400 font-bold mt-[0.15vw] px-[0.4vw] py-[0.15vw] rounded-full whitespace-nowrap" style={{ backgroundColor: `rgba(15, 23, 42, ${donorsBgOpacity})`, fontSize: `${(donorsFontSize - 2) * scale}px`, fontFamily: donorsFontFamily }}>
-                      {donor.diamonds} 💎
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
         {/* 2. SOCIAL ALERTS */}
         <div className={`flex w-full ${isVertical ? 'flex-col items-center justify-end gap-6 flex-1 mb-8' : 'justify-end items-end h-[680px]'}`}>
 
@@ -455,6 +407,55 @@ export const OverlayView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* PITCH MODE: Floating Top Donors (z-45 to stay above celebration overlay) */}
+      {donorsDisplay === 'pitch' && allTopDonors.length > 0 && (
+        <div className="absolute inset-0 pointer-events-none" style={{ top: '30%', bottom: '14%', zIndex: 45 }}>
+          <style>{`
+            @keyframes donor-float {
+              0%, 100% { transform: translate(-50%, -50%) translateY(0px); }
+              50% { transform: translate(-50%, -50%) translateY(-10px); }
+            }
+          `}</style>
+          {allTopDonors.map((donor, idx) => {
+            const pos = donorPositions[donor.username];
+            if (!pos) return null;
+            const isLocal = donor.teamId === localTeam?.id;
+            return (
+              <div
+                key={donor.username}
+                className="absolute flex flex-col items-center transition-all duration-15000 ease-in-out"
+                style={{
+                  left: `${pos.x}%`,
+                  top: `${pos.y}%`,
+                  transform: 'translate(-50%, -50%)',
+                  animation: `donor-float ${2.5 + (idx * 0.3)}s ease-in-out infinite`,
+                  animationDelay: `${idx * 0.6}s`
+                }}
+              >
+                {idx === 0 && <span className="absolute z-10 drop-shadow-lg" style={{ fontSize: `${donorsIconSize * scale * 0.8}px`, top: `-${donorsIconSize * scale * 0.7}px` }}>👑</span>}
+                <div className="rounded-full shadow-lg bg-slate-800 flex items-center justify-center overflow-hidden" style={{ width: `${donorsIconSize * scale}px`, height: `${donorsIconSize * scale}px`, border: `${donorsBorderWidth}px solid ${idx === 0 ? '#eab308' : isLocal ? 'rgba(96,165,250,0.7)' : 'rgba(251,191,36,0.7)'}` }}>
+                  <img
+                    src={donor.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${donor.username}`}
+                    alt={donor.username}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                {donorsShowName && (
+                  <span className="text-white font-bold mt-[0.3vw] px-[0.4vw] py-[0.15vw] rounded-full whitespace-nowrap" style={{ backgroundColor: `rgba(15, 23, 42, ${donorsBgOpacity})`, fontSize: `${donorsFontSize * scale}px`, fontFamily: donorsFontFamily }}>
+                    {donor.username}
+                  </span>
+                )}
+                {donorsShowDiamonds && (
+                  <span className="text-amber-400 font-bold mt-[0.15vw] px-[0.4vw] py-[0.15vw] rounded-full whitespace-nowrap" style={{ backgroundColor: `rgba(15, 23, 42, ${donorsBgOpacity})`, fontSize: `${(donorsFontSize - 2) * scale}px`, fontFamily: donorsFontFamily }}>
+                    {donor.diamonds} 💎
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* --- DONOR CENTER SCREEN ALERT --- */}
       <div

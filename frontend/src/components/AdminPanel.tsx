@@ -917,6 +917,19 @@ export const AdminPanel: React.FC = () => {
                         className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-100 font-bold"
                       />
                     </div>
+                    <div>
+                      <label className="block text-[10px] uppercase text-slate-400 font-semibold mb-1">
+                        Grosor Borde Avatar (px)
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="20"
+                        value={settings.top_donors_border_width || '3'}
+                        onChange={(e) => handleFieldChange('top_donors_border_width', e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-100 font-bold"
+                      />
+                    </div>
                     <div className="col-span-2">
                       <label className="block text-[10px] uppercase text-slate-400 font-semibold mb-1">
                         Familia Tipográfica

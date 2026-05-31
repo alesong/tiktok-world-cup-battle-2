@@ -72,6 +72,7 @@ export interface GameSettings {
   top_donors_show_name?: string;
   top_donors_show_diamonds?: string;
   top_donors_display?: string;
+  top_donors_border_width?: string;
   scoreboard_text_scale?: string;
   ball_scale?: string;
   speech_follow_text?: string;
@@ -172,6 +173,7 @@ export const useGameStore = create<GameState>((set, get) => {
       top_donors_bg_opacity: '60',
       top_donors_show_name: 'true',
       top_donors_show_diamonds: 'true',
+      top_donors_border_width: '3',
       scoreboard_text_scale: '100',
       ball_scale: '100'
     },
