@@ -33,11 +33,11 @@ export const OverlayView: React.FC = () => {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/settings`);
+        const res = await fetch(`${API_BASE_URL}/api/settings?t=${Date.now()}`);
         const data = await res.json();
         if (data.settings) {
           const currentSettings = useGameStore.getState().settings;
-          useGameStore.setState({ settings: { ...currentSettings, ...data.settings } });
+          useGameStore.setState({ settings: { ...currentSettings, ...data.settings }, donors: data.donors || [] });
         }
       } catch { /* ignore */ }
     };
@@ -474,7 +474,7 @@ export const OverlayView: React.FC = () => {
 
       {/* --- DONOR CENTER SCREEN ALERT --- */}
       <div
-        className={`absolute left-1/2 z-40 transition-all duration-500 pointer-events-none ${lastDonor ? 'opacity-100' : 'opacity-0'}`}
+        className={`absolute left-1/2 z-50 transition-all duration-500 pointer-events-none ${lastDonor ? 'opacity-100' : 'opacity-0'}`}
         style={{
           top: `${settings.donor_card_y || '50'}%`,
           transform: `translate(-50%, -50%) scale(${(parseInt(settings.donor_card_scale || '100', 10) / 100) * (lastDonor ? 1 : 0.5)})`

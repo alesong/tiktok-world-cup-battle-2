@@ -25,7 +25,7 @@ export const TopDonorsOverlay: React.FC = () => {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/settings`);
+        const res = await fetch(`${API_BASE_URL}/api/settings?t=${Date.now()}`);
         const data = await res.json();
         if (data.settings) {
           const currentSettings = useGameStore.getState().settings;
