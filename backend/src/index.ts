@@ -40,7 +40,8 @@ const broadcastGameState = async () => {
   const visitorTeamId = settings.visitor_team_id || 'BRA';
   const localTeam = await prisma.twcTeam.findUnique({ where: { id: localTeamId } });
   const visitorTeam = await prisma.twcTeam.findUnique({ where: { id: visitorTeamId } });
-  const donors = await prisma.twcDonor.findMany({ orderBy: { diamonds: 'desc' }, take: 10 });
+  const donorsCount = parseInt(settings.top_donors_count || '10', 10);
+  const donors = await prisma.twcDonor.findMany({ orderBy: { diamonds: 'desc' }, take: donorsCount });
 
   io.emit('game_state_update', {
     matchState: settings.match_state,
@@ -77,7 +78,8 @@ app.get('/api/settings', async (req, res) => {
     const settings = await getAllSettings();
     const teams = await prisma.twcTeam.findMany();
     const recentMatches = await prisma.twcMatch.findMany({ orderBy: { createdAt: 'desc' }, take: 5 });
-    const donors = await prisma.twcDonor.findMany({ orderBy: { diamonds: 'desc' }, take: 10 });
+    const donorsCount = parseInt(settings.top_donors_count || '10', 10);
+    const donors = await prisma.twcDonor.findMany({ orderBy: { diamonds: 'desc' }, take: donorsCount });
 
     res.json({
       success: true,
@@ -105,6 +107,7 @@ app.post('/api/settings', async (req, res) => {
     }
 
     await broadcastGameState();
+    await tiktokService.broadcastDonors();
     res.json({ success: true, message: 'Configuraciones actualizadas con éxito' });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -142,6 +145,7 @@ app.post('/api/match/control', async (req, res) => {
       await upsertSetting('event_turbo', 'false');
 
       io.emit('game_action', { type: 'match_reset' });
+      await tiktokService.broadcastDonors();
     } else if (action === 'reset-scores') {
       await upsertSetting('local_score', '0');
       await upsertSetting('visitor_score', '0');
@@ -235,7 +239,8 @@ io.on('connection', async (socket) => {
     const visitorTeamId = settings.visitor_team_id || 'BRA';
     const localTeam = await prisma.twcTeam.findUnique({ where: { id: localTeamId } });
     const visitorTeam = await prisma.twcTeam.findUnique({ where: { id: visitorTeamId } });
-    const donors = await prisma.twcDonor.findMany({ orderBy: { diamonds: 'desc' }, take: 10 });
+    const donorsCount = parseInt(settings.top_donors_count || '10', 10);
+    const donors = await prisma.twcDonor.findMany({ orderBy: { diamonds: 'desc' }, take: donorsCount });
     const teams = await prisma.twcTeam.findMany();
 
     socket.emit('init_state', {

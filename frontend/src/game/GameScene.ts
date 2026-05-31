@@ -75,8 +75,8 @@ export class GameScene extends Phaser.Scene {
       const maxDiamonds = parseInt(state.settings.goal_distance_diamonds || '200', 10);
       const maxPixels = parseInt(state.settings.goal_distance_pixels || '600', 10);
       
-      // Calculate visual X
-      const ratio = state.ballProgress / maxDiamonds; // ranges from -1 to 1
+      // Calculate visual X and clamp to goal line boundaries
+      const ratio = Math.max(-1, Math.min(1, state.ballProgress / maxDiamonds));
       this.targetBallX = 960 + (ratio * maxPixels);
 
       if (state.matchState === 'celebrating') {
@@ -92,7 +92,7 @@ export class GameScene extends Phaser.Scene {
     this.updateTeams(initialState.localTeam, initialState.visitorTeam);
     const initialMaxDiamonds = parseInt(initialState.settings.goal_distance_diamonds || '200', 10);
     const initialMaxPixels = parseInt(initialState.settings.goal_distance_pixels || '600', 10);
-    const initialRatio = initialState.ballProgress / initialMaxDiamonds;
+    const initialRatio = Math.max(-1, Math.min(1, initialState.ballProgress / initialMaxDiamonds));
     this.targetBallX = 960 + (initialRatio * initialMaxPixels);
 
     // Listen for custom like events from the React store
@@ -168,10 +168,14 @@ export class GameScene extends Phaser.Scene {
     this.ballShadow.fillStyle(0x000000, Math.max(0.1, shadowAlpha));
     this.ballShadow.fillEllipse(this.currentBallX, this.centerY + 16, 28 * Math.max(0.2, shadowScale), 10 * Math.max(0.2, shadowScale));
 
-    // 5. Position and Animate Players
+    // 5. Apply ball scale
+    const ballScale = parseFloat(useGameStore.getState().settings.ball_scale || '100') / 100;
+    this.ball.setScale(ballScale);
+
+    // 6. Position and Animate Players
     this.animatePlayers(time, speed);
 
-    // 6. Handle active particles (celebrations)
+    // 7. Handle active particles (celebrations)
     this.updateParticles();
   }
 

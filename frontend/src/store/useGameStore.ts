@@ -69,6 +69,10 @@ export interface GameSettings {
   top_donors_show_diamonds?: string;
   top_donors_display?: string;
   scoreboard_text_scale?: string;
+  ball_scale?: string;
+  speech_follow_text?: string;
+  speech_gift_text?: string;
+  speech_goal_text?: string;
 }
 
 interface GameState {
@@ -96,6 +100,7 @@ interface GameState {
   rewardTimeLeft: number;
   likeCelebration: boolean;
   lastDonor: { username: string; avatar: string; giftName?: string; diamonds?: number } | null;
+  lastSpokenDonor: string | null;
   tiktokState: TikTokState;
   speechRate: number;
   speechVolume: number;
@@ -116,6 +121,7 @@ export const useGameStore = create<GameState>((set, get) => {
     likeProgress: 0,
     lastLiker: null,
     lastDonor: null,
+    lastSpokenDonor: null,
     upcomingReward: 'event_gold_goal',
     rewardTimeLeft: 0,
     likeCelebration: false,
@@ -162,7 +168,8 @@ export const useGameStore = create<GameState>((set, get) => {
       top_donors_bg_opacity: '60',
       top_donors_show_name: 'true',
       top_donors_show_diamonds: 'true',
-      scoreboard_text_scale: '100'
+      scoreboard_text_scale: '100',
+      ball_scale: '100'
     },
     teams: [],
     activeAlert: null,
@@ -380,6 +387,14 @@ export const useGameStore = create<GameState>((set, get) => {
             if (lastDonorTimerId) clearTimeout(lastDonorTimerId);
             lastDonorTimerId = setTimeout(() => set({ lastDonor: null }), 4000);
 
+            // Speech donation: only if different donor
+            const { lastSpokenDonor } = get();
+            if (action.username && action.username !== lastSpokenDonor) {
+              const giftText = get().settings.speech_gift_text || 'tiene la pelota';
+              get().speak(`${action.username} ${giftText}`);
+              set({ lastSpokenDonor: action.username });
+            }
+
             window.dispatchEvent(new CustomEvent('tiktok_gift', { detail: action }));
             break;
           case 'like':
@@ -463,7 +478,8 @@ export const useGameStore = create<GameState>((set, get) => {
               details: 'es un nuevo seguidor',
               avatar: action.avatar
             });
-            get().speak(`${action.username} también quiere entrar a la cancha`);
+            const followText = get().settings.speech_follow_text || 'también quiere entrar a la cancha';
+            get().speak(`${action.username} ${followText}`);
             break;
           case 'join':
             get().setAlert({
@@ -483,6 +499,10 @@ export const useGameStore = create<GameState>((set, get) => {
                 matchState: 'celebrating'
               });
             }
+            // Speech: who scored the goal
+            const scorerName = action.scorerUsername || action.teamName || (action.teamSide === 'local' ? 'Local' : 'Visitante');
+            const goalText = get().settings.speech_goal_text || 'hizo gol';
+            get().speak(`${scorerName} ${goalText}`);
             break;
           case 'match_started':
             get().triggerSound('whistle');

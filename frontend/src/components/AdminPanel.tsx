@@ -595,6 +595,45 @@ export const AdminPanel: React.FC = () => {
                   </select>
                 </div>
 
+                <div>
+                  <label className="block text-[10px] uppercase text-slate-400 font-semibold mb-1">
+                    Texto al seguir
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.speech_follow_text || 'también quiere entrar a la cancha'}
+                    onChange={(e) => handleFieldChange('speech_follow_text', e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-xs text-slate-100 font-bold"
+                    placeholder="también quiere entrar a la cancha"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] uppercase text-slate-400 font-semibold mb-1">
+                    Texto al donar
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.speech_gift_text || 'tiene la pelota'}
+                    onChange={(e) => handleFieldChange('speech_gift_text', e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-xs text-slate-100 font-bold"
+                    placeholder="tiene la pelota"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] uppercase text-slate-400 font-semibold mb-1">
+                    Texto al hacer gol
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.speech_goal_text || 'hizo gol'}
+                    onChange={(e) => handleFieldChange('speech_goal_text', e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-xs text-slate-100 font-bold"
+                    placeholder="hizo gol"
+                  />
+                </div>
+
                 <button
                   onClick={() => speak('Hola, esto es una prueba de voz')}
                   className="w-full bg-amber-600/20 text-amber-400 hover:bg-amber-600/40 border border-amber-600/30 font-bold uppercase text-[10px] tracking-wider py-2.5 rounded-lg transition-all"
@@ -729,6 +768,23 @@ export const AdminPanel: React.FC = () => {
                     step="5"
                     value={settings.player_scale || '100'}
                     onChange={(e) => handleFieldChange('player_scale', e.target.value)}
+                    className="w-full accent-amber-500 bg-slate-900 h-1.5 rounded-lg cursor-pointer mt-2"
+                  />
+                </div>
+
+                {/* Ball Scale */}
+                <div className="text-xs">
+                  <label className="block text-[10px] uppercase text-slate-400 font-semibold mb-1 flex justify-between">
+                    <span>Tamaño del Balón (%)</span>
+                    <span className="text-amber-500">{settings.ball_scale || '100'}%</span>
+                  </label>
+                  <input
+                    type="range"
+                    min="50"
+                    max="200"
+                    step="5"
+                    value={settings.ball_scale || '100'}
+                    onChange={(e) => handleFieldChange('ball_scale', e.target.value)}
                     className="w-full accent-amber-500 bg-slate-900 h-1.5 rounded-lg cursor-pointer mt-2"
                   />
                 </div>

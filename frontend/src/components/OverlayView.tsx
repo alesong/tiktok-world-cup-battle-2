@@ -92,7 +92,7 @@ export const OverlayView: React.FC = () => {
 
   // Calculate ball progress bar fill percent
   const maxDiamonds = parseInt(settings.goal_distance_diamonds || '200', 10);
-  const fillPercent = 50 + ((ballProgress / maxDiamonds) * 50); // ranges 0% to 100%
+  const fillPercent = Math.max(0, Math.min(100, 50 + ((ballProgress / maxDiamonds) * 50))); // ranges 0% to 100%
 
   const resolution = settings.overlay_resolution || '1920x1080';
   const isVertical = resolution === '1080x1920';
@@ -131,7 +131,7 @@ export const OverlayView: React.FC = () => {
   const donorsDisplay = settings.top_donors_display || 'list';
   const giftCardScale = parseInt(settings.gift_card_scale || '100', 10) / 100;
 
-  const allTopDonors = [...topDonorsLocal, ...topDonorsVisitor].sort((a, b) => b.diamonds - a.diamonds);
+  const allTopDonors = donors.slice(0, donorsCount);
 
   // Random positions for pitch display mode
   const [donorPositions, setDonorPositions] = useState<Record<string, { x: number; y: number }>>({});

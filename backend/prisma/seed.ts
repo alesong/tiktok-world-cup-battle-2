@@ -36,6 +36,22 @@ const DEFAULT_TEAMS: { id: string; name: string; flag: string; primaryColor: str
   { id: 'MEX', name: 'México', flag: '🇲🇽', primaryColor: '#006847', secondaryColor: '#C8102E', jerseyColor: '#006847' },
   { id: 'JPN', name: 'Japón', flag: '🇯🇵', primaryColor: '#00005F', secondaryColor: '#FFFFFF', jerseyColor: '#00005F' },
   { id: 'MAR', name: 'Marruecos', flag: '🇲🇦', primaryColor: '#C1272D', secondaryColor: '#006233', jerseyColor: '#C1272D' },
+  { id: 'CHI', name: 'Chile', flag: '🇨🇱', primaryColor: '#D9252B', secondaryColor: '#0039A6', jerseyColor: '#FFFFFF' },
+  { id: 'PER', name: 'Perú', flag: '🇵🇪', primaryColor: '#D91023', secondaryColor: '#FFFFFF', jerseyColor: '#FFFFFF' },
+  { id: 'ECU', name: 'Ecuador', flag: '🇪🇨', primaryColor: '#FEDF00', secondaryColor: '#0039A6', jerseyColor: '#FEDF00' },
+  { id: 'PAR', name: 'Paraguay', flag: '🇵🇾', primaryColor: '#D52B1E', secondaryColor: '#FFFFFF', jerseyColor: '#FFFFFF' },
+  { id: 'BOL', name: 'Bolivia', flag: '🇧🇴', primaryColor: '#D52B1E', secondaryColor: '#FEDF00', jerseyColor: '#006847' },
+  { id: 'VEN', name: 'Venezuela', flag: '🇻🇪', primaryColor: '#FEDF00', secondaryColor: '#0039A6', jerseyColor: '#D91023' },
+  { id: 'CRC', name: 'Costa Rica', flag: '🇨🇷', primaryColor: '#D9252B', secondaryColor: '#0039A6', jerseyColor: '#FFFFFF' },
+  { id: 'PAN', name: 'Panamá', flag: '🇵🇦', primaryColor: '#00529F', secondaryColor: '#D91023', jerseyColor: '#FFFFFF' },
+  { id: 'HON', name: 'Honduras', flag: '🇭🇳', primaryColor: '#0077B6', secondaryColor: '#FFFFFF', jerseyColor: '#0077B6' },
+  { id: 'SLV', name: 'El Salvador', flag: '🇸🇻', primaryColor: '#0039A6', secondaryColor: '#FFFFFF', jerseyColor: '#0039A6' },
+  { id: 'GUA', name: 'Guatemala', flag: '🇬🇹', primaryColor: '#0066FF', secondaryColor: '#FFFFFF', jerseyColor: '#FFFFFF' },
+  { id: 'NIC', name: 'Nicaragua', flag: '🇳🇮', primaryColor: '#0039A6', secondaryColor: '#FFFFFF', jerseyColor: '#0039A6' },
+  { id: 'CUB', name: 'Cuba', flag: '🇨🇺', primaryColor: '#D52B1E', secondaryColor: '#0039A6', jerseyColor: '#FFFFFF' },
+  { id: 'DOM', name: 'República Dominicana', flag: '🇩🇴', primaryColor: '#D52B1E', secondaryColor: '#0039A6', jerseyColor: '#FFFFFF' },
+  { id: 'HAI', name: 'Haití', flag: '🇭🇹', primaryColor: '#D9252B', secondaryColor: '#0039A6', jerseyColor: '#D9252B' },
+  { id: 'PRI', name: 'Puerto Rico', flag: '🇵🇷', primaryColor: '#D91023', secondaryColor: '#FFFFFF', jerseyColor: '#0039A6' },
 ];
 
 async function main() {
@@ -51,17 +67,15 @@ async function main() {
     console.log(`Seeded ${DEFAULT_SETTINGS.length} settings.`);
   }
 
-  const teamCount = await prisma.twcTeam.count();
-  if (teamCount === 0) {
-    for (const t of DEFAULT_TEAMS) {
-      await prisma.twcTeam.upsert({
-        where: { id: t.id },
-        create: t,
-        update: t,
-      });
+  // Always upsert all teams (adds missing countries without overwriting existing customizations)
+  for (const t of DEFAULT_TEAMS) {
+    const exists = await prisma.twcTeam.findUnique({ where: { id: t.id } });
+    if (!exists) {
+      await prisma.twcTeam.create({ data: t });
     }
-    console.log(`Seeded ${DEFAULT_TEAMS.length} teams.`);
   }
+  const teamCount = await prisma.twcTeam.count();
+  console.log(`Seeded ${DEFAULT_TEAMS.length} team definitions (${teamCount} total in DB).`);
 }
 
 main()

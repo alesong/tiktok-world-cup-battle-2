@@ -74,10 +74,21 @@ INSERT INTO twc_teams (id, name, flag, "primaryColor", "secondaryColor", "jersey
   ('URU', 'Uruguay', '🇺🇾', '#007FFF', '#FFFFFF', '#007FFF'),
   ('MEX', 'México', '🇲🇽', '#006847', '#C8102E', '#006847'),
   ('JPN', 'Japón', '🇯🇵', '#00005F', '#FFFFFF', '#00005F'),
-  ('MAR', 'Marruecos', '🇲🇦', '#C1272D', '#006233', '#C1272D')
-ON CONFLICT (id) DO UPDATE SET
-  name = EXCLUDED.name,
-  flag = EXCLUDED.flag,
-  "primaryColor" = EXCLUDED."primaryColor",
-  "secondaryColor" = EXCLUDED."secondaryColor",
-  "jerseyColor" = EXCLUDED."jerseyColor";
+  ('MAR', 'Marruecos', '🇲🇦', '#C1272D', '#006233', '#C1272D'),
+  ('CHI', 'Chile', '🇨🇱', '#D9252B', '#0039A6', '#FFFFFF'),
+  ('PER', 'Perú', '🇵🇪', '#D91023', '#FFFFFF', '#FFFFFF'),
+  ('ECU', 'Ecuador', '🇪🇨', '#FEDF00', '#0039A6', '#FEDF00'),
+  ('PAR', 'Paraguay', '🇵🇾', '#D52B1E', '#FFFFFF', '#FFFFFF'),
+  ('BOL', 'Bolivia', '🇧🇴', '#D52B1E', '#FEDF00', '#006847'),
+  ('VEN', 'Venezuela', '🇻🇪', '#FEDF00', '#0039A6', '#D91023'),
+  ('CRC', 'Costa Rica', '🇨🇷', '#D9252B', '#0039A6', '#FFFFFF'),
+  ('PAN', 'Panamá', '🇵🇦', '#00529F', '#D91023', '#FFFFFF'),
+  ('HON', 'Honduras', '🇭🇳', '#0077B6', '#FFFFFF', '#0077B6'),
+  ('SLV', 'El Salvador', '🇸🇻', '#0039A6', '#FFFFFF', '#0039A6'),
+  ('GUA', 'Guatemala', '🇬🇹', '#0066FF', '#FFFFFF', '#FFFFFF'),
+  ('NIC', 'Nicaragua', '🇳🇮', '#0039A6', '#FFFFFF', '#0039A6'),
+  ('CUB', 'Cuba', '🇨🇺', '#D52B1E', '#0039A6', '#FFFFFF'),
+  ('DOM', 'República Dominicana', '🇩🇴', '#D52B1E', '#0039A6', '#FFFFFF'),
+  ('HAI', 'Haití', '🇭🇹', '#D9252B', '#0039A6', '#D9252B'),
+  ('PRI', 'Puerto Rico', '🇵🇷', '#D91023', '#FFFFFF', '#0039A6')
+ON CONFLICT (id) DO NOTHING;

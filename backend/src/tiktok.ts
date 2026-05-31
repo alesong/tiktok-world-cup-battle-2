@@ -36,6 +36,7 @@ export class TikTokLiveService {
   private lastError: string = '';
   private recentFollows: Map<string, number> = new Map();
   private readonly followDedupMs: number = 10000;
+  private giftProcessingQueue: Promise<void> = Promise.resolve();
 
   constructor(io: Server) {
     this.io = io;
@@ -249,6 +250,8 @@ export class TikTokLiveService {
   // --- GAME LOGIC PIPELINE ---
 
   public async handleGift(event: { username: string; giftName: string; count: number; avatar: string }) {
+    // Serialize gift processing to prevent race conditions (e.g., double goals)
+    const process = async () => {
     const matchState = await getSettingValue('match_state');
     if (matchState !== 'playing') return;
 
@@ -262,8 +265,11 @@ export class TikTokLiveService {
     const totalDiamonds = baseValue * event.count * multiplier;
 
     let teamSide: 'local' | 'visitor' = 'local';
-    if (giftData && giftData.team) {
-      teamSide = giftData.team;
+    const isConfiguredGift = giftData !== undefined && giftData !== null;
+    if (isConfiguredGift) {
+      if (typeof giftData === 'object' && giftData.team) {
+        teamSide = giftData.team;
+      }
     } else {
       const visitorGifts = ['TikTok', 'Perfume', 'Universo'];
       if (visitorGifts.includes(event.giftName)) {
@@ -336,10 +342,15 @@ export class TikTokLiveService {
     });
 
     if (isGoal) {
-      await this.handleGoal(scoringTeam);
+      await this.handleGoal(scoringTeam, event.username);
     } else {
       await this.broadcastDonors();
     }
+    };
+    this.giftProcessingQueue = this.giftProcessingQueue.then(process).catch(err => {
+      console.error('Error processing gift:', err);
+    });
+    return this.giftProcessingQueue;
   }
 
   public async handleLike(event: { username: string; likeCount: number; avatar: string }) {
@@ -442,7 +453,11 @@ export class TikTokLiveService {
 
   // --- GOAL CELEBRATION AND STATE ---
 
-  private async handleGoal(scoringTeam: 'local' | 'visitor') {
+  private async handleGoal(scoringTeam: 'local' | 'visitor', scorerUsername?: string) {
+    // Prevent double goals from race conditions
+    const currentMatchState = await getSettingValue('match_state');
+    if (currentMatchState === 'celebrating') return;
+
     await updateSetting('match_state', 'celebrating');
 
     const currentScore = parseInt(await getSettingValue(`${scoringTeam}_score`) || '0', 10);
@@ -462,6 +477,7 @@ export class TikTokLiveService {
       flag: team?.flag || '',
       localScore,
       visitorScore,
+      scorerUsername,
     });
 
     setTimeout(async () => {
