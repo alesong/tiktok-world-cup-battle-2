@@ -491,7 +491,7 @@ export const AdminPanel: React.FC = () => {
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleTikTokConnect(true)}
-                    disabled={tiktokState.connected || isTikTokConnecting || tiktokState.reconnecting}
+                    disabled={tiktokState.connected || isTikTokConnecting}
                     className="flex-1 font-bold uppercase text-[10px] tracking-wider py-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5 border disabled:cursor-not-allowed disabled:opacity-60"
                     style={{
                       backgroundColor: tiktokState.connected ? 'rgba(34,197,94,0.15)' : isTikTokConnecting || tiktokState.reconnecting ? 'rgba(234,179,8,0.15)' : 'rgba(34,197,94,0.12)',
@@ -504,8 +504,8 @@ export const AdminPanel: React.FC = () => {
                   </button>
                   <button
                     onClick={() => handleTikTokConnect(false)}
-                    disabled={!tiktokState.connected}
-                    className="flex-1 bg-red-700/20 text-red-400 hover:bg-red-700/40 border border-red-600/30 font-bold uppercase text-[10px] tracking-wider py-2.5 rounded-lg transition-all"
+                    disabled={!tiktokState.connected && !tiktokState.reconnecting}
+                    className="flex-1 bg-red-700/20 text-red-400 hover:bg-red-700/40 border border-red-600/30 font-bold uppercase text-[10px] tracking-wider py-2.5 rounded-lg transition-all disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     Desconectar
                   </button>
