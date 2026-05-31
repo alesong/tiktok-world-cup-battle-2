@@ -34,6 +34,7 @@ export const OverlayView: React.FC = () => {
       const stored = localStorage.getItem('tiktok_settings');
       if (stored) {
         const parsed = JSON.parse(stored);
+        console.log('[Overlay] localStorage mount:', parsed.scoreboard_text_scale, parsed.top_donors_icon_size);
         useGameStore.setState({ settings: { ...useGameStore.getState().settings, ...parsed } });
       }
     } catch { /* ignore */ }
@@ -46,6 +47,7 @@ export const OverlayView: React.FC = () => {
       try {
         const res = await fetch(`${API_BASE_URL}/api/settings?t=${Date.now()}`);
         const data = await res.json();
+        console.log('[Overlay] poll got settings:', data.settings?.scoreboard_text_scale, data.settings?.top_donors_icon_size);
         if (data.settings) {
           const currentSettings = useGameStore.getState().settings;
           useGameStore.setState({ settings: { ...currentSettings, ...data.settings }, donors: data.donors || [] });
@@ -63,6 +65,7 @@ export const OverlayView: React.FC = () => {
       if (e.key === 'tiktok_settings' && e.newValue) {
         try {
           const stored = JSON.parse(e.newValue);
+          console.log('[Overlay] storage event:', stored.scoreboard_text_scale, stored.top_donors_icon_size);
           useGameStore.setState({ settings: { ...useGameStore.getState().settings, ...stored } });
         } catch { /* ignore */ }
       }
@@ -153,7 +156,7 @@ export const OverlayView: React.FC = () => {
   const donorsShowDiamonds = settings.top_donors_show_diamonds !== 'false';
   const donorsBorderWidth = parseInt(settings.top_donors_border_width || '3', 10);
 
-  console.log(`[Overlay] top_donors_icon_size = ${settings.top_donors_icon_size} → donorsIconSize = ${donorsIconSize}`);
+  console.log(`[Overlay] scoreboard_text_scale=${settings.scoreboard_text_scale} textScale=${textScale} top_donors_icon_size=${settings.top_donors_icon_size} donorsIconSize=${donorsIconSize} scale=${scale}`);
 
   const topDonorsLocal = donors.filter(d => d.teamId === localTeam?.id).slice(0, donorsCount);
   const topDonorsVisitor = donors.filter(d => d.teamId === visitorTeam?.id).slice(0, donorsCount);

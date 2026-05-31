@@ -255,7 +255,7 @@ export const AdminPanel: React.FC = () => {
     const newSettings = { ...useGameStore.getState().settings, [key]: val };
     useGameStore.setState({ settings: newSettings });
     localStorage.setItem('tiktok_settings', JSON.stringify(newSettings));
-    console.log(`[Admin] Saving ${key} = ${val}`);
+    console.log(`[Admin] Saving ${key} = ${val}, localStorage written: scoreboard_text_scale=${newSettings.scoreboard_text_scale}, top_donors_icon_size=${newSettings.top_donors_icon_size}`);
     saveSettings(fields);
   };
 
