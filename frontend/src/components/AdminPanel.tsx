@@ -212,8 +212,9 @@ export const AdminPanel: React.FC = () => {
       const res = await fetch(`${API_URL}/api/settings`);
       const data = await res.json();
       if (data.success) {
+        const currentSettings = useGameStore.getState().settings;
         useGameStore.setState({
-          settings: data.settings,
+          settings: { ...currentSettings, ...data.settings },
           teams: data.teams || [],
           localTeam: data.teams?.find((t: any) => t.id === data.settings.local_team_id) || null,
           visitorTeam: data.teams?.find((t: any) => t.id === data.settings.visitor_team_id) || null,
@@ -242,15 +243,16 @@ export const AdminPanel: React.FC = () => {
       });
       const data = await response.json();
       if (!data.success) {
-        alert('Error al guardar configuraciones');
+        alert('Error al guardar configuración: ' + (data.message || 'Error desconocido'));
       }
     } catch (err) {
-      console.error(err);
+      console.error('Error saving settings:', err);
     }
   };
 
   const handleFieldChange = (key: string, val: any) => {
     const fields = { [key]: val };
+    useGameStore.setState({ settings: { ...useGameStore.getState().settings, [key]: val } });
     saveSettings(fields);
   };
 

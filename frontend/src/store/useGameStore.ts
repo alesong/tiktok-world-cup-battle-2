@@ -298,7 +298,7 @@ export const useGameStore = create<GameState>((set, get) => {
           ballProgress: data.ballProgress,
           localScore: data.localScore,
           visitorScore: data.visitorScore,
-          settings: data.settings,
+          settings: { ...get().settings, ...data.settings },
           localTeam: data.localTeam,
           visitorTeam: data.visitorTeam,
           donors: data.donors,
@@ -321,7 +321,7 @@ export const useGameStore = create<GameState>((set, get) => {
         if (data.ballProgress !== undefined) updates.ballProgress = data.ballProgress;
         if (data.localScore !== undefined) updates.localScore = data.localScore;
         if (data.visitorScore !== undefined) updates.visitorScore = data.visitorScore;
-        if (data.settings !== undefined) updates.settings = data.settings;
+        if (data.settings !== undefined) updates.settings = { ...get().settings, ...data.settings };
         if (data.localTeam !== undefined) updates.localTeam = data.localTeam;
         if (data.visitorTeam !== undefined) updates.visitorTeam = data.visitorTeam;
         if (data.donors !== undefined) updates.donors = data.donors;
