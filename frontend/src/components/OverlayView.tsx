@@ -258,37 +258,35 @@ export const OverlayView: React.FC = () => {
         className={isVertical ? "absolute left-0 w-full aspect-[16/9] top-1/2 -translate-y-1/2 z-0" : "absolute inset-0 z-0"}
       ></div>
 
-      {/* --- TRIBUNA: Espectadores en las gradas (arriba y abajo) --- */}
+      {/* --- TRIBUNA: Gradas + Espectadores --- */}
       {(() => {
         const likerIconSize = parseInt(settings.top_likers_icon_size || '24', 10) * scale;
         const likerFontSize = parseInt(settings.top_likers_font_size || '9', 10) * scale;
         const count = Math.min(likers.length, parseInt(settings.top_likers_count || '30', 10));
+        const pos = parseInt(settings.top_likers_position || '50', 10) / 100;
         if (count === 0) return null;
 
-        const seats: { x: number; y: number }[] = [];
+        const rows = 4;
         const cols = 10;
+        const topBase = 1 + pos * 16;      // 1% to 17%
+        const bottomBase = 65 + (1 - pos) * 14;  // 65% to 79%
+        const rowH = 3.8;
 
-        // Gradas superiores (arriba de la cancha)
-        for (let row = 0; row < 4; row++) {
+        const seats: { x: number; y: number }[] = [];
+        for (let row = 0; row < rows; row++) {
           for (let col = 0; col < cols; col++) {
-            seats.push({ x: 4 + col * (92 / cols), y: 2.5 + row * 4 });
+            seats.push({ x: 3 + col * (94 / cols), y: topBase + row * rowH });
           }
         }
-        // Gradas inferiores (abajo de la cancha)
-        for (let row = 0; row < 4; row++) {
+        for (let row = 0; row < rows; row++) {
           for (let col = 0; col < cols; col++) {
-            seats.push({ x: 4 + col * (92 / cols), y: 74 + row * 4 });
+            seats.push({ x: 3 + col * (94 / cols), y: bottomBase + row * rowH });
           }
         }
 
         return (
           <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 5 }}>
             <style>{`
-              @keyframes spectator-sway {
-                0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
-                25% { transform: translate(-50%, -50%) rotate(2deg); }
-                75% { transform: translate(-50%, -50%) rotate(-2deg); }
-              }
               @keyframes spectator-bounce {
                 0%, 100% { transform: translate(-50%, -50%) translateY(0); }
                 50% { transform: translate(-50%, -50%) translateY(-3px); }
@@ -297,12 +295,44 @@ export const OverlayView: React.FC = () => {
                 text-shadow: 0 1px 3px rgba(0,0,0,0.8);
               }
             `}</style>
+
+            {/* Gradas superiores */}
+            <svg className="absolute w-full" style={{ top: `${topBase - 3.5}%`, height: `${rows * rowH + 4}%` }} preserveAspectRatio="none" viewBox="0 0 100 100">
+              <defs>
+                <linearGradient id="gradaTop" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#1e293b" />
+                  <stop offset="40%" stopColor="#0f172a" />
+                  <stop offset="100%" stopColor="#020617" />
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="100" height="100" fill="url(#gradaTop)" opacity="0.6" />
+              {[0, 1, 2, 3].map(r => (
+                <rect key={r} x="3" y={10 + r * 22} width="94" height="4" rx="1" fill="#334155" opacity="0.4" />
+              ))}
+            </svg>
+
+            {/* Gradas inferiores */}
+            <svg className="absolute w-full" style={{ top: `${bottomBase - 3.5}%`, height: `${rows * rowH + 4}%` }} preserveAspectRatio="none" viewBox="0 0 100 100">
+              <defs>
+                <linearGradient id="gradaBottom" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#020617" />
+                  <stop offset="60%" stopColor="#0f172a" />
+                  <stop offset="100%" stopColor="#1e293b" />
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="100" height="100" fill="url(#gradaBottom)" opacity="0.6" />
+              {[0, 1, 2, 3].map(r => (
+                <rect key={r} x="3" y={10 + r * 22} width="94" height="4" rx="1" fill="#334155" opacity="0.4" />
+              ))}
+            </svg>
+
+            {/* Espectadores */}
             {likers.slice(0, count).map((liker, idx) => {
               const seat = seats[idx];
               if (!seat) return null;
-              const delay = (idx * 0.3) % 4;
+              const delay = (idx * 0.15) % 5;
               const showName = settings.top_likers_show_name !== 'false';
-              const isTop = seat.y < 50;
+              const isTop = idx < rows * cols;
               return (
                 <div
                   key={liker.username}
@@ -311,10 +341,8 @@ export const OverlayView: React.FC = () => {
                     left: `${seat.x}%`,
                     top: `${seat.y}%`,
                     transform: 'translate(-50%, -50%)',
-                    animation: `spectator-bounce ${2 + (idx % 4) * 0.3}s ease-in-out infinite`,
-                    animationDelay: `${delay}s`,
-                    transition: 'opacity 0.8s ease-in',
-                    opacity: 1
+                    animation: `spectator-bounce ${2 + (idx % 5) * 0.2}s ease-in-out infinite`,
+                    animationDelay: `${delay}s`
                   }}
                 >
                   <div

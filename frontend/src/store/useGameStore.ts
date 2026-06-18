@@ -85,6 +85,7 @@ export interface GameSettings {
   top_likers_icon_size?: string;
   top_likers_font_size?: string;
   top_likers_show_name?: string;
+  top_likers_position?: string;
   scoreboard_text_scale?: string;
   ball_scale?: string;
   speech_follow_text?: string;
@@ -193,6 +194,7 @@ export const useGameStore = create<GameState>((set, get) => {
       top_likers_icon_size: '32',
       top_likers_font_size: '12',
       top_likers_show_name: 'true',
+      top_likers_position: '50',
       scoreboard_text_scale: '100',
       top_donors_position: '100',
       ball_scale: '100'

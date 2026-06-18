@@ -71,7 +71,8 @@ INSERT INTO twc_settings (key, value) VALUES
   ('top_likers_count', '30'),
   ('top_likers_icon_size', '32'),
   ('top_likers_font_size', '12'),
-  ('top_likers_show_name', 'true')
+  ('top_likers_show_name', 'true'),
+  ('top_likers_position', '50')
 ON CONFLICT (key) DO NOTHING;
 
 -- Seed teams

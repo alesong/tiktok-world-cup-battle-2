@@ -1079,6 +1079,20 @@ export const AdminPanel: React.FC = () => {
                         <option value="false">No</option>
                       </select>
                     </div>
+                    <div className="col-span-2">
+                      <label className="block text-[10px] uppercase text-slate-400 font-semibold mb-1 flex justify-between">
+                        <span>Posición Vertical</span>
+                        <span className="text-amber-500">{settings.top_likers_position || '50'}%</span>
+                      </label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={settings.top_likers_position || '50'}
+                        onChange={(e) => handleFieldChange('top_likers_position', e.target.value)}
+                        className="w-full accent-pink-500 bg-slate-900 h-1.5 rounded-lg cursor-pointer mt-2"
+                      />
+                    </div>
                   </div>
                 </div>
 
