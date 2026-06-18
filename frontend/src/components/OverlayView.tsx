@@ -258,46 +258,105 @@ export const OverlayView: React.FC = () => {
         className={isVertical ? "absolute left-0 w-full aspect-[16/9] top-1/2 -translate-y-1/2 z-0" : "absolute inset-0 z-0"}
       ></div>
 
-      {/* --- TRIBUNA: Top Likers en la gradería --- */}
-      {likers.length > 0 && (
-        <div className="absolute top-0 left-0 right-0 flex justify-center pointer-events-none" style={{ paddingTop: `${0.3 * scale}vw`, zIndex: 5 }}>
-          <div className="flex flex-wrap justify-center" style={{ gap: `${0.4 * scale}vw`, maxWidth: `${80 * scale}vw` }}>
-            {likers.slice(0, parseInt(settings.top_likers_count || '5', 10)).map((liker, idx) => (
-              <div
-                key={liker.username}
-                className="flex items-center rounded-full"
-                style={{
-                  gap: `${0.2 * scale}vw`,
-                  padding: `${0.15 * scale}vw ${0.4 * scale}vw`,
-                  backgroundColor: 'rgba(15, 23, 42, 0.7)',
-                  border: '1px solid rgba(236, 72, 153, 0.3)',
-                  animation: `liker-float ${2 + (idx * 0.2)}s ease-in-out infinite`,
-                  animationDelay: `${idx * 0.3}s`
-                }}
-              >
-                <img
-                  src={liker.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${liker.username}`}
-                  alt={liker.username}
-                  className="rounded-full border border-pink-500/40"
-                  style={{ width: `${parseInt(settings.top_likers_icon_size || '32', 10) * scale}px`, height: `${parseInt(settings.top_likers_icon_size || '32', 10) * scale}px` }}
-                />
-                <span className="text-white font-bold truncate max-w-[6vw]" style={{ fontSize: `${parseInt(settings.top_likers_font_size || '12', 10) * scale}px` }}>
-                  {liker.username}
-                </span>
-                <span className="text-pink-400 font-bold" style={{ fontSize: `${parseInt(settings.top_likers_font_size || '12', 10) * scale}px` }}>
-                  {liker.likeCount}
-                </span>
-              </div>
-            ))}
+      {/* --- TRIBUNA: Espectadores alrededor de la cancha --- */}
+      {(() => {
+        const likerIconSize = parseInt(settings.top_likers_icon_size || '28', 10) * scale;
+        const likerFontSize = parseInt(settings.top_likers_font_size || '10', 10) * scale;
+        const count = Math.min(likers.length, parseInt(settings.top_likers_count || '8', 10));
+        if (count === 0) return null;
+
+        // Generate seats around the pitch perimeter
+        const seats: { x: number; y: number; side: string }[] = [];
+        // Left side (tribuna izquierda)
+        for (let row = 0; row < 4; row++) {
+          for (let col = 0; col < 3; col++) {
+            seats.push({ x: 2 + col * 5, y: 18 + row * 18, side: 'left' });
+          }
+        }
+        // Right side (tribuna derecha)
+        for (let row = 0; row < 4; row++) {
+          for (let col = 0; col < 3; col++) {
+            seats.push({ x: 83 + col * 5, y: 18 + row * 18, side: 'right' });
+          }
+        }
+        // Top row (detrás del arco)
+        for (let col = 0; col < 6; col++) {
+          seats.push({ x: 20 + col * 10, y: 3, side: 'top' });
+        }
+        // Bottom row (detrás del arco)
+        for (let col = 0; col < 6; col++) {
+          seats.push({ x: 20 + col * 10, y: 80, side: 'bottom' });
+        }
+
+        const assigned = seats.slice(0, count);
+
+        return (
+          <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 5 }}>
+            <style>{`
+              @keyframes spectator-sway {
+                0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
+                25% { transform: translate(-50%, -50%) rotate(2deg); }
+                75% { transform: translate(-50%, -50%) rotate(-2deg); }
+              }
+              @keyframes spectator-bounce {
+                0%, 100% { transform: translate(-50%, -50%) translateY(0); }
+                50% { transform: translate(-50%, -50%) translateY(-3px); }
+              }
+              .spectator-badge {
+                text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+              }
+            `}</style>
+            {likers.slice(0, count).map((liker, idx) => {
+              const seat = assigned[idx];
+              if (!seat) return null;
+              const delay = (idx * 0.4) % 3;
+              return (
+                <div
+                  key={liker.username}
+                  className="absolute flex flex-col items-center cursor-default transition-all duration-1000"
+                  style={{
+                    left: `${seat.x}%`,
+                    top: `${seat.y}%`,
+                    transform: 'translate(-50%, -50%)',
+                    animation: `spectator-sway ${2.5 + (idx % 3) * 0.5}s ease-in-out infinite, spectator-bounce ${1.8 + (idx % 4) * 0.4}s ease-in-out infinite`,
+                    animationDelay: `${delay}s, ${delay + 0.3}s`
+                  }}
+                >
+                  <div
+                    className="rounded-full overflow-hidden border-2 flex items-center justify-center"
+                    style={{
+                      width: `${likerIconSize}px`,
+                      height: `${likerIconSize}px`,
+                      borderColor: seat.side === 'left' ? 'rgba(96,165,250,0.6)' : seat.side === 'right' ? 'rgba(251,191,36,0.6)' : 'rgba(236,72,153,0.5)',
+                      boxShadow: `0 0 8px ${seat.side === 'left' ? 'rgba(96,165,250,0.3)' : seat.side === 'right' ? 'rgba(251,191,36,0.3)' : 'rgba(236,72,153,0.3)'}`
+                    }}
+                  >
+                    <img
+                      src={liker.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${liker.username}`}
+                      alt={liker.username}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  {likerFontSize >= 7 && (
+                    <div
+                      className="spectator-badge rounded-full whitespace-nowrap font-bold text-pink-300"
+                      style={{
+                        fontSize: `${likerFontSize}px`,
+                        backgroundColor: 'rgba(15, 23, 42, 0.7)',
+                        padding: `${0.08 * scale}vw ${0.25 * scale}vw`,
+                        marginTop: `${0.15 * scale}vw`,
+                        border: '1px solid rgba(236, 72, 153, 0.25)'
+                      }}
+                    >
+                      {liker.likeCount}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
-          <style>{`
-            @keyframes liker-float {
-              0%, 100% { transform: translateY(0px); }
-              50% { transform: translateY(-4px); }
-            }
-          `}</style>
-        </div>
-      )}
+        );
+      })()}
 
       {/* --- HUD FOREGROUND OVERLAYS --- */}
       <div className="absolute inset-0 z-10 p-6 flex flex-col justify-between pointer-events-none">
