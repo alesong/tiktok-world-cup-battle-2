@@ -532,8 +532,9 @@ export const AdminPanel: React.FC = () => {
                      tiktokState.error === 'offline' ? `@${tiktokState.username} no está en vivo` :
                      tiktokState.error === 'stream_ended' ? 'Stream finalizado' :
                      tiktokState.error === 'disconnected' ? 'Conexión perdida' :
-                     tiktokState.error === 'max_reconnect' ? 'Conexión perdida - Máx. reintentos' :
-                     tiktokState.error ? `Error: ${tiktokState.error.slice(0, 40)}` :
+tiktokState.error === 'max_reconnect' ? 'Conexión perdida - Máx. reintentos' :
+                      tiktokState.error === 'rate_limit' ? 'Límite de conexiones - Espera 1 hora' :
+                      tiktokState.error ? `Error: ${tiktokState.error.slice(0, 40)}` :
                      'No conectado'}
                   </span>
                 </div>

@@ -167,6 +167,20 @@ export class TikTokLiveService {
         this.tiktokConnection = null;
 
         const isOffline = /offline|stream ended|no live|not found|no stream|ended/i.test(errorMsg);
+        const isRateLimit = err?.retryAfter !== undefined;
+
+        if (isRateLimit) {
+          const retrySecs = Math.ceil((err.retryAfter || 3600000) / 1000);
+          const mins = Math.ceil(retrySecs / 60);
+          console.log(`TikTok rate limit alcanzado. Reintentar en ${retrySecs}s (${mins} min).`);
+          this.lastError = 'rate_limit';
+          this.emitState({
+            connected: false,
+            error: 'rate_limit',
+            reconnecting: false
+          });
+          return;
+        }
 
         this.emitState({
           connected: false,
