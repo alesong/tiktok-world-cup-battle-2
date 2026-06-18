@@ -647,7 +647,7 @@ export class GameScene extends Phaser.Scene {
       (p as any).vy = Phaser.Math.FloatBetween(-6, -2);
       (p as any).vx = Phaser.Math.FloatBetween(-2, 2);
       (p as any).alpha = 1.0;
-      (p as any).decay = Phaser.Math.FloatBetween(0.01, 0.03);
+      (p as any).decay = Phaser.Math.FloatBetween(0.005, 0.015);
       (p as any).scale = 1.0;
       
       this.likeParticles.push(p);

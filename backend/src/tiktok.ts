@@ -574,9 +574,10 @@ export class TikTokLiveService {
         } else {
           await updateSetting('match_state', 'playing');
           const freshSettings = await this.getAllSettings();
+          const actualProgress = parseInt(freshSettings.ball_progress || '0', 10);
           this.io.emit('game_state_update', {
             matchState: 'playing',
-            ballProgress: 0,
+            ballProgress: actualProgress,
             localScore: localScoreVal,
             visitorScore: visitorScoreVal,
             settings: freshSettings
