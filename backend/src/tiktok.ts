@@ -373,6 +373,8 @@ export class TikTokLiveService {
 
   private likeThrottleTimer: any = null;
   private likeBatchCount: number = 0;
+  private likeBatchUsername: string = '';
+  private likeBatchAvatar: string = '';
 
   public async handleLike(event: { username: string; likeCount: number; avatar: string }) {
     const existing = this.likers.get(event.username);
@@ -383,22 +385,39 @@ export class TikTokLiveService {
       this.likers.set(event.username, { username: event.username, likeCount: event.likeCount, avatar: event.avatar });
     }
 
-    this.likeBatchCount += event.likeCount;
+    if (this.likeThrottleTimer) {
+      this.likeBatchCount += event.likeCount;
+      this.likeBatchUsername = event.username;
+      if (event.avatar) this.likeBatchAvatar = event.avatar;
+      return;
+    }
 
-    if (!this.likeThrottleTimer) {
-      this.likeThrottleTimer = setTimeout(() => {
-        this.likeThrottleTimer = null;
+    this.io.emit('game_action', {
+      type: 'like',
+      username: event.username,
+      likeCount: event.likeCount,
+      avatar: event.avatar
+    });
+    this.broadcastLikers();
+
+    this.likeThrottleTimer = setTimeout(() => {
+      this.likeThrottleTimer = null;
+      if (this.likeBatchCount > 0) {
         const batch = this.likeBatchCount;
+        const username = this.likeBatchUsername;
+        const avatar = this.likeBatchAvatar;
         this.likeBatchCount = 0;
+        this.likeBatchUsername = '';
+        this.likeBatchAvatar = '';
         this.io.emit('game_action', {
           type: 'like',
-          username: '',
+          username,
           likeCount: batch,
-          avatar: ''
+          avatar
         });
         this.broadcastLikers();
-      }, 150);
-    }
+      }
+    }, 200);
   }
 
   public getLikers() {
