@@ -23,6 +23,12 @@ export interface Donor {
   avatar: string;
 }
 
+export interface Liker {
+  username: string;
+  likeCount: number;
+  avatar: string;
+}
+
 export interface TikTokState {
   connected: boolean;
   username: string;
@@ -75,6 +81,9 @@ export interface GameSettings {
   top_donors_display?: string;
   top_donors_border_width?: string;
   top_donors_position?: string;
+  top_likers_count?: string;
+  top_likers_icon_size?: string;
+  top_likers_font_size?: string;
   scoreboard_text_scale?: string;
   ball_scale?: string;
   speech_follow_text?: string;
@@ -90,6 +99,7 @@ interface GameState {
   localTeam: Team | null;
   visitorTeam: Team | null;
   donors: Donor[];
+  likers: Liker[];
   settings: GameSettings;
   teams: Team[];
   activeAlert: { type: 'follow' | 'share' | 'join' | 'gift'; username: string; details?: string; avatar?: string } | null;
@@ -138,6 +148,7 @@ export const useGameStore = create<GameState>((set, get) => {
     localTeam: null,
     visitorTeam: null,
     donors: [],
+    likers: [],
     settings: {
       goal_distance_diamonds: '200',
       goal_distance_pixels: '600',
@@ -177,6 +188,9 @@ export const useGameStore = create<GameState>((set, get) => {
       top_donors_show_name: 'true',
       top_donors_show_diamonds: 'true',
       top_donors_border_width: '3',
+      top_likers_count: '5',
+      top_likers_icon_size: '32',
+      top_likers_font_size: '12',
       scoreboard_text_scale: '100',
       top_donors_position: '100',
       ball_scale: '100'
@@ -307,6 +321,7 @@ export const useGameStore = create<GameState>((set, get) => {
           localTeam: data.localTeam,
           visitorTeam: data.visitorTeam,
           donors: data.donors,
+          likers: data.likers || [],
           teams: data.teams || [],
           tiktokState: data.tiktok || { connected: false, username: '', error: '', reconnecting: false, reconnectAttempt: 0 },
           isConnecting: false
@@ -331,6 +346,7 @@ export const useGameStore = create<GameState>((set, get) => {
         if (data.localTeam !== undefined) updates.localTeam = data.localTeam;
         if (data.visitorTeam !== undefined) updates.visitorTeam = data.visitorTeam;
         if (data.donors !== undefined) updates.donors = data.donors;
+        if (data.likers !== undefined) updates.likers = data.likers;
 
         set(updates);
 
@@ -551,6 +567,10 @@ export const useGameStore = create<GameState>((set, get) => {
 
       socket.on('donors_update', (donorsList: Donor[]) => {
         set({ donors: donorsList });
+      });
+
+      socket.on('likers_update', (likersList: Liker[]) => {
+        set({ likers: likersList });
       });
 
       socket.on('tiktok_connection_state', (tiktokState: TikTokState) => {

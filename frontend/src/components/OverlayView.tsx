@@ -17,6 +17,7 @@ export const OverlayView: React.FC = () => {
     localTeam,
     visitorTeam,
     donors,
+    likers,
     settings,
 
     timeLeft,
@@ -50,7 +51,7 @@ export const OverlayView: React.FC = () => {
         console.log('[Overlay] poll got settings:', data.settings?.scoreboard_text_scale, data.settings?.top_donors_icon_size);
         if (data.settings) {
           const currentSettings = useGameStore.getState().settings;
-          useGameStore.setState({ settings: { ...currentSettings, ...data.settings }, donors: data.donors || [] });
+          useGameStore.setState({ settings: { ...currentSettings, ...data.settings }, donors: data.donors || [], likers: data.likers || [] });
         }
       } catch { /* ignore */ }
     };
@@ -256,6 +257,47 @@ export const OverlayView: React.FC = () => {
         id="phaser-game-container"
         className={isVertical ? "absolute left-0 w-full aspect-[16/9] top-1/2 -translate-y-1/2 z-0" : "absolute inset-0 z-0"}
       ></div>
+
+      {/* --- TRIBUNA: Top Likers en la gradería --- */}
+      {likers.length > 0 && (
+        <div className="absolute top-0 left-0 right-0 flex justify-center pointer-events-none" style={{ paddingTop: `${0.3 * scale}vw`, zIndex: 5 }}>
+          <div className="flex flex-wrap justify-center" style={{ gap: `${0.4 * scale}vw`, maxWidth: `${80 * scale}vw` }}>
+            {likers.slice(0, parseInt(settings.top_likers_count || '5', 10)).map((liker, idx) => (
+              <div
+                key={liker.username}
+                className="flex items-center rounded-full"
+                style={{
+                  gap: `${0.2 * scale}vw`,
+                  padding: `${0.15 * scale}vw ${0.4 * scale}vw`,
+                  backgroundColor: 'rgba(15, 23, 42, 0.7)',
+                  border: '1px solid rgba(236, 72, 153, 0.3)',
+                  animation: `liker-float ${2 + (idx * 0.2)}s ease-in-out infinite`,
+                  animationDelay: `${idx * 0.3}s`
+                }}
+              >
+                <img
+                  src={liker.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${liker.username}`}
+                  alt={liker.username}
+                  className="rounded-full border border-pink-500/40"
+                  style={{ width: `${parseInt(settings.top_likers_icon_size || '32', 10) * scale}px`, height: `${parseInt(settings.top_likers_icon_size || '32', 10) * scale}px` }}
+                />
+                <span className="text-white font-bold truncate max-w-[6vw]" style={{ fontSize: `${parseInt(settings.top_likers_font_size || '12', 10) * scale}px` }}>
+                  {liker.username}
+                </span>
+                <span className="text-pink-400 font-bold" style={{ fontSize: `${parseInt(settings.top_likers_font_size || '12', 10) * scale}px` }}>
+                  {liker.likeCount}
+                </span>
+              </div>
+            ))}
+          </div>
+          <style>{`
+            @keyframes liker-float {
+              0%, 100% { transform: translateY(0px); }
+              50% { transform: translateY(-4px); }
+            }
+          `}</style>
+        </div>
+      )}
 
       {/* --- HUD FOREGROUND OVERLAYS --- */}
       <div className="absolute inset-0 z-10 p-6 flex flex-col justify-between pointer-events-none">

@@ -43,6 +43,9 @@ const broadcastGameState = async () => {
   const donorsCount = parseInt(settings.top_donors_count || '10', 10);
   const donors = await prisma.twcDonor.findMany({ orderBy: { diamonds: 'desc' }, take: donorsCount });
 
+  const likersCount = parseInt(settings.top_likers_count || '10', 10);
+  const likers = tiktokService.getLikers().slice(0, likersCount);
+
   io.emit('game_state_update', {
     matchState: settings.match_state,
     ballProgress: parseInt(settings.ball_progress || '0', 10),
@@ -51,7 +54,8 @@ const broadcastGameState = async () => {
     settings,
     localTeam,
     visitorTeam,
-    donors: donors || []
+    donors: donors || [],
+    likers: likers || []
   });
 };
 
@@ -81,12 +85,15 @@ app.get('/api/settings', async (req, res) => {
     const donorsCount = parseInt(settings.top_donors_count || '10', 10);
     const donors = await prisma.twcDonor.findMany({ orderBy: { diamonds: 'desc' }, take: donorsCount });
 
+    const likersCount = parseInt(settings.top_likers_count || '10', 10);
+
     res.json({
       success: true,
       settings,
       teams: teams || [],
       recentMatches: recentMatches || [],
       donors: donors || [],
+      likers: tiktokService.getLikers().slice(0, likersCount),
       tiktok: tiktokService.getConnectionState()
     });
   } catch (error: any) {
@@ -135,6 +142,7 @@ app.post('/api/match/control', async (req, res) => {
       await tiktokService.endMatch();
     } else if (action === 'reset') {
       await prisma.twcDonor.deleteMany({ where: { username: { not: '' } } });
+      tiktokService.clearLikers();
       await upsertSetting('local_score', '0');
       await upsertSetting('visitor_score', '0');
       await upsertSetting('ball_progress', '0');
@@ -146,6 +154,7 @@ app.post('/api/match/control', async (req, res) => {
 
       io.emit('game_action', { type: 'match_reset' });
       await tiktokService.broadcastDonors();
+      await tiktokService.broadcastLikers();
     } else if (action === 'reset-scores') {
       await upsertSetting('local_score', '0');
       await upsertSetting('visitor_score', '0');
@@ -243,6 +252,9 @@ io.on('connection', async (socket) => {
     const donors = await prisma.twcDonor.findMany({ orderBy: { diamonds: 'desc' }, take: donorsCount });
     const teams = await prisma.twcTeam.findMany();
 
+    const likersCountInit = parseInt(settings.top_likers_count || '10', 10);
+    const likersInit = tiktokService.getLikers().slice(0, likersCountInit);
+
     socket.emit('init_state', {
       matchState: settings.match_state,
       ballProgress: parseInt(settings.ball_progress || '0', 10),
@@ -252,6 +264,7 @@ io.on('connection', async (socket) => {
       localTeam,
       visitorTeam,
       donors: donors || [],
+      likers: likersInit || [],
       teams: teams || [],
       tiktok: tiktokService.getConnectionState()
     });

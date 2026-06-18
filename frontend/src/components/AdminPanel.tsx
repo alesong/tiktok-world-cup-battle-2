@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useGameStore } from '../store/useGameStore.js';
-import { Shield, Radio, Settings, Trophy, Zap, Sparkles, Volume2, Plus, Trash, Play, Pause, RotateCcw, AlertTriangle, Loader2 } from 'lucide-react';
+import { Shield, Radio, Settings, Trophy, Zap, Sparkles, Volume2, Plus, Trash, Play, Pause, RotateCcw, AlertTriangle, Loader2, Heart } from 'lucide-react';
 
 const TIKTOK_GIFTS = [
   { name: 'Rosa', icon: '🌹', defaultPrice: 1 },
@@ -1015,6 +1015,56 @@ export const AdminPanel: React.FC = () => {
                         <option value="list">Lista lateral</option>
                         <option value="pitch">Dentro de la cancha</option>
                       </select>
+                    </div>
+                  </div>
+                </div>
+
+                <hr className="border-slate-800" />
+
+                {/* Top Likers Configuration */}
+                <div className="space-y-3">
+                  <h3 className="font-sports text-[11px] uppercase tracking-wider text-pink-500 font-bold flex items-center gap-1.5">
+                    <Heart className="h-3 w-3" /> Tribuna - Top Likers
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <label className="block text-[10px] uppercase text-slate-400 font-semibold mb-1">
+                        Cantidad (Top N)
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="50"
+                        value={settings.top_likers_count || '5'}
+                        onChange={(e) => handleFieldChange('top_likers_count', e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-100 font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] uppercase text-slate-400 font-semibold mb-1">
+                        Tamaño Icono (px)
+                      </label>
+                      <input
+                        type="number"
+                        min="8"
+                        max="80"
+                        value={settings.top_likers_icon_size || '32'}
+                        onChange={(e) => handleFieldChange('top_likers_icon_size', e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-100 font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] uppercase text-slate-400 font-semibold mb-1">
+                        Tamaño Fuente (px)
+                      </label>
+                      <input
+                        type="number"
+                        min="6"
+                        max="40"
+                        value={settings.top_likers_font_size || '12'}
+                        onChange={(e) => handleFieldChange('top_likers_font_size', e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-100 font-bold"
+                      />
                     </div>
                   </div>
                 </div>

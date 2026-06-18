@@ -67,7 +67,10 @@ INSERT INTO twc_settings (key, value) VALUES
   ('speech_follow_text', 'también quiere entrar a la cancha'),
   ('speech_gift_text', 'tiene la pelota'),
   ('speech_goal_text', 'hizo gol'),
-  ('top_donors_position', '100')
+  ('top_donors_position', '100'),
+  ('top_likers_count', '5'),
+  ('top_likers_icon_size', '32'),
+  ('top_likers_font_size', '12')
 ON CONFLICT (key) DO NOTHING;
 
 -- Seed teams

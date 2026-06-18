@@ -37,6 +37,7 @@ export class TikTokLiveService {
   private recentFollows: Map<string, number> = new Map();
   private readonly followDedupMs: number = 10000;
   private giftProcessingQueue: Promise<void> = Promise.resolve();
+  private likers: Map<string, { username: string; likeCount: number; avatar: string }> = new Map();
 
   constructor(io: Server) {
     this.io = io;
@@ -354,12 +355,42 @@ export class TikTokLiveService {
   }
 
   public async handleLike(event: { username: string; likeCount: number; avatar: string }) {
+    const existing = this.likers.get(event.username);
+    if (existing) {
+      existing.likeCount += event.likeCount;
+      if (event.avatar) existing.avatar = event.avatar;
+    } else {
+      this.likers.set(event.username, { username: event.username, likeCount: event.likeCount, avatar: event.avatar });
+    }
+
     this.io.emit('game_action', {
       type: 'like',
       username: event.username,
       likeCount: event.likeCount,
       avatar: event.avatar
     });
+
+    await this.broadcastLikers();
+  }
+
+  public getLikers() {
+    const limit = parseInt(this.io?.engine?.clientsCount ? '50' : '10', 10);
+    return Array.from(this.likers.values())
+      .sort((a, b) => b.likeCount - a.likeCount)
+      .slice(0, 100);
+  }
+
+  public clearLikers() {
+    this.likers.clear();
+  }
+
+  public async broadcastLikers() {
+    const limitStr = await getSettingValue('top_likers_count');
+    const limit = parseInt(limitStr || '10', 10);
+    const likers = Array.from(this.likers.values())
+      .sort((a, b) => b.likeCount - a.likeCount)
+      .slice(0, limit);
+    this.io.emit('likers_update', likers || []);
   }
 
   public async handleShare(event: { username: string; avatar: string }) {
