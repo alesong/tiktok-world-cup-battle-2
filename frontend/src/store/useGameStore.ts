@@ -189,7 +189,7 @@ export const useGameStore = create<GameState>((set, get) => {
       top_donors_show_name: 'true',
       top_donors_show_diamonds: 'true',
       top_donors_border_width: '3',
-      top_likers_count: '5',
+      top_likers_count: '30',
       top_likers_icon_size: '32',
       top_likers_font_size: '12',
       top_likers_show_name: 'true',

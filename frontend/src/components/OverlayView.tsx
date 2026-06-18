@@ -258,37 +258,28 @@ export const OverlayView: React.FC = () => {
         className={isVertical ? "absolute left-0 w-full aspect-[16/9] top-1/2 -translate-y-1/2 z-0" : "absolute inset-0 z-0"}
       ></div>
 
-      {/* --- TRIBUNA: Espectadores alrededor de la cancha --- */}
+      {/* --- TRIBUNA: Espectadores en las gradas (arriba y abajo) --- */}
       {(() => {
-        const likerIconSize = parseInt(settings.top_likers_icon_size || '28', 10) * scale;
-        const likerFontSize = parseInt(settings.top_likers_font_size || '10', 10) * scale;
-        const count = Math.min(likers.length, parseInt(settings.top_likers_count || '8', 10));
+        const likerIconSize = parseInt(settings.top_likers_icon_size || '24', 10) * scale;
+        const likerFontSize = parseInt(settings.top_likers_font_size || '9', 10) * scale;
+        const count = Math.min(likers.length, parseInt(settings.top_likers_count || '30', 10));
         if (count === 0) return null;
 
-        // Generate seats around the pitch perimeter
-        const seats: { x: number; y: number; side: string }[] = [];
-        // Left side (tribuna izquierda)
-        for (let row = 0; row < 4; row++) {
-          for (let col = 0; col < 3; col++) {
-            seats.push({ x: 2 + col * 5, y: 18 + row * 18, side: 'left' });
-          }
-        }
-        // Right side (tribuna derecha)
-        for (let row = 0; row < 4; row++) {
-          for (let col = 0; col < 3; col++) {
-            seats.push({ x: 83 + col * 5, y: 18 + row * 18, side: 'right' });
-          }
-        }
-        // Top row (detrás del arco)
-        for (let col = 0; col < 6; col++) {
-          seats.push({ x: 20 + col * 10, y: 3, side: 'top' });
-        }
-        // Bottom row (detrás del arco)
-        for (let col = 0; col < 6; col++) {
-          seats.push({ x: 20 + col * 10, y: 80, side: 'bottom' });
-        }
+        const seats: { x: number; y: number }[] = [];
+        const cols = 10;
 
-        const assigned = seats.slice(0, count);
+        // Gradas superiores (arriba de la cancha)
+        for (let row = 0; row < 4; row++) {
+          for (let col = 0; col < cols; col++) {
+            seats.push({ x: 4 + col * (92 / cols), y: 2.5 + row * 4 });
+          }
+        }
+        // Gradas inferiores (abajo de la cancha)
+        for (let row = 0; row < 4; row++) {
+          for (let col = 0; col < cols; col++) {
+            seats.push({ x: 4 + col * (92 / cols), y: 74 + row * 4 });
+          }
+        }
 
         return (
           <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 5 }}>
@@ -307,20 +298,23 @@ export const OverlayView: React.FC = () => {
               }
             `}</style>
             {likers.slice(0, count).map((liker, idx) => {
-              const seat = assigned[idx];
+              const seat = seats[idx];
               if (!seat) return null;
-              const delay = (idx * 0.4) % 3;
+              const delay = (idx * 0.3) % 4;
               const showName = settings.top_likers_show_name !== 'false';
+              const isTop = seat.y < 50;
               return (
                 <div
                   key={liker.username}
-                  className="absolute flex flex-col items-center cursor-default transition-all duration-1000"
+                  className="absolute flex flex-col items-center cursor-default"
                   style={{
                     left: `${seat.x}%`,
                     top: `${seat.y}%`,
                     transform: 'translate(-50%, -50%)',
-                    animation: `spectator-sway ${2.5 + (idx % 3) * 0.5}s ease-in-out infinite, spectator-bounce ${1.8 + (idx % 4) * 0.4}s ease-in-out infinite`,
-                    animationDelay: `${delay}s, ${delay + 0.3}s`
+                    animation: `spectator-bounce ${2 + (idx % 4) * 0.3}s ease-in-out infinite`,
+                    animationDelay: `${delay}s`,
+                    transition: 'opacity 0.8s ease-in',
+                    opacity: 1
                   }}
                 >
                   <div
@@ -328,8 +322,8 @@ export const OverlayView: React.FC = () => {
                     style={{
                       width: `${likerIconSize}px`,
                       height: `${likerIconSize}px`,
-                      borderColor: seat.side === 'left' ? 'rgba(96,165,250,0.6)' : seat.side === 'right' ? 'rgba(251,191,36,0.6)' : 'rgba(236,72,153,0.5)',
-                      boxShadow: `0 0 8px ${seat.side === 'left' ? 'rgba(96,165,250,0.3)' : seat.side === 'right' ? 'rgba(251,191,36,0.3)' : 'rgba(236,72,153,0.3)'}`
+                      borderColor: isTop ? 'rgba(236,72,153,0.5)' : 'rgba(168,85,247,0.5)',
+                      boxShadow: `0 0 6px ${isTop ? 'rgba(236,72,153,0.25)' : 'rgba(168,85,247,0.25)'}`
                     }}
                   >
                     <img
@@ -338,20 +332,19 @@ export const OverlayView: React.FC = () => {
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  {likerFontSize >= 7 && (
-                    <div
-                      className="spectator-badge rounded-full whitespace-nowrap font-bold text-pink-300"
-                      style={{
-                        fontSize: `${likerFontSize}px`,
-                        backgroundColor: 'rgba(15, 23, 42, 0.7)',
-                        padding: `${0.08 * scale}vw ${0.25 * scale}vw`,
-                        marginTop: `${0.15 * scale}vw`,
-                        border: '1px solid rgba(236, 72, 153, 0.25)'
-                      }}
-                    >
-                      {showName ? `${liker.username} ` : ''}{liker.likeCount}
-                    </div>
-                  )}
+                  <div
+                    className="spectator-badge rounded-full whitespace-nowrap font-bold"
+                    style={{
+                      fontSize: `${likerFontSize}px`,
+                      color: isTop ? '#f9a8d4' : '#d8b4fe',
+                      backgroundColor: 'rgba(15, 23, 42, 0.7)',
+                      padding: `${0.06 * scale}vw ${0.2 * scale}vw`,
+                      marginTop: `${0.1 * scale}vw`,
+                      border: `1px solid ${isTop ? 'rgba(236,72,153,0.2)' : 'rgba(168,85,247,0.2)'}`
+                    }}
+                  >
+                    {showName ? `${liker.username} ` : ''}{liker.likeCount}
+                  </div>
                 </div>
               );
             })}
