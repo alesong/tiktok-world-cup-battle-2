@@ -1081,16 +1081,30 @@ export const AdminPanel: React.FC = () => {
                     </div>
                     <div className="col-span-2">
                       <label className="block text-[10px] uppercase text-slate-400 font-semibold mb-1 flex justify-between">
-                        <span>Posición Vertical</span>
-                        <span className="text-amber-500">{settings.top_likers_position || '50'}%</span>
+                        <span>Posición Tribuna Norte (arriba)</span>
+                        <span className="text-pink-400">{settings.top_likers_position_north || '100'}%</span>
                       </label>
                       <input
                         type="range"
                         min="0"
-                        max="100"
-                        value={settings.top_likers_position || '50'}
-                        onChange={(e) => handleFieldChange('top_likers_position', e.target.value)}
+                        max="300"
+                        value={settings.top_likers_position_north || '100'}
+                        onChange={(e) => handleFieldChange('top_likers_position_north', e.target.value)}
                         className="w-full accent-pink-500 bg-slate-900 h-1.5 rounded-lg cursor-pointer mt-2"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-[10px] uppercase text-slate-400 font-semibold mb-1 flex justify-between">
+                        <span>Posición Tribuna Sur (abajo)</span>
+                        <span className="text-purple-400">{settings.top_likers_position_south || '100'}%</span>
+                      </label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="300"
+                        value={settings.top_likers_position_south || '100'}
+                        onChange={(e) => handleFieldChange('top_likers_position_south', e.target.value)}
+                        className="w-full accent-purple-500 bg-slate-900 h-1.5 rounded-lg cursor-pointer mt-2"
                       />
                     </div>
                   </div>
