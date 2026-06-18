@@ -265,15 +265,15 @@ export const OverlayView: React.FC = () => {
         const count = Math.min(likers.length, parseInt(settings.top_likers_count || '30', 10));
         if (count === 0) return null;
 
-        const rows = 4;
+        const rows = 3;
         const cols = 10;
 
         const posNorth = parseInt(settings.top_likers_position_north || '100', 10) / 300;
         const posSouth = parseInt(settings.top_likers_position_south || '100', 10) / 300;
 
-        const topBase = 0.5 + posNorth * 18;        // 0.5% to 18.5%
+        const topBase = 0.5 + posNorth * 35;        // 0.5% to 35.5%
         const bottomBase = 62 + posSouth * 18;       // 62% to 80%
-        const rowH = 3.8;
+        const rowH = 2.8;
 
         // Generar asientos alternando entre norte y sur
         const northSeats: { x: number; y: number }[] = [];
@@ -318,6 +318,10 @@ export const OverlayView: React.FC = () => {
               .spectator-badge {
                 text-shadow: 0 1px 3px rgba(0,0,0,0.8);
               }
+              @keyframes ping {
+                0%, 100% { transform: scale(1); opacity: 1; }
+                50% { transform: scale(1.3); opacity: 0.8; }
+              }
             `}</style>
 
             {/* Gradas Norte */}
@@ -330,8 +334,8 @@ export const OverlayView: React.FC = () => {
                 </linearGradient>
               </defs>
               <rect x="0" y="0" width="100" height="100" fill={`url(#${gradTopId})`} opacity="0.6" />
-              {[0, 1, 2, 3].map(r => (
-                <rect key={r} x="3" y={10 + r * 22} width="94" height="4" rx="1" fill="#334155" opacity="0.4" />
+              {[0, 1, 2].map(r => (
+                <rect key={r} x="3" y={10 + r * 28} width="94" height="4" rx="1" fill="#334155" opacity="0.4" />
               ))}
             </svg>
 
@@ -345,8 +349,8 @@ export const OverlayView: React.FC = () => {
                 </linearGradient>
               </defs>
               <rect x="0" y="0" width="100" height="100" fill={`url(#${gradBotId})`} opacity="0.6" />
-              {[0, 1, 2, 3].map(r => (
-                <rect key={r} x="3" y={10 + r * 22} width="94" height="4" rx="1" fill="#334155" opacity="0.4" />
+              {[0, 1, 2].map(r => (
+                <rect key={r} x="3" y={10 + r * 28} width="94" height="4" rx="1" fill="#334155" opacity="0.4" />
               ))}
             </svg>
 
@@ -356,6 +360,7 @@ export const OverlayView: React.FC = () => {
               if (!seat) return null;
               const delay = (idx * 0.15) % 5;
               const showName = settings.top_likers_show_name !== 'false';
+              const isHighlighted = lastLiker?.username === liker.username;
               return (
                 <div
                   key={liker.username}
@@ -369,12 +374,12 @@ export const OverlayView: React.FC = () => {
                   }}
                 >
                   <div
-                    className="rounded-full overflow-hidden border-2 flex items-center justify-center"
+                    className={`rounded-full overflow-hidden border-2 flex items-center justify-center ${isHighlighted ? 'animate-pulse' : ''}`}
                     style={{
                       width: `${likerIconSize}px`,
                       height: `${likerIconSize}px`,
-                      borderColor: seat.isNorth ? 'rgba(236,72,153,0.5)' : 'rgba(168,85,247,0.5)',
-                      boxShadow: `0 0 6px ${seat.isNorth ? 'rgba(236,72,153,0.25)' : 'rgba(168,85,247,0.25)'}`
+                      borderColor: isHighlighted ? '#ec4899' : (seat.isNorth ? 'rgba(236,72,153,0.5)' : 'rgba(168,85,247,0.5)'),
+                      boxShadow: isHighlighted ? '0 0 20px rgba(236,72,153,0.8)' : `0 0 6px ${seat.isNorth ? 'rgba(236,72,153,0.25)' : 'rgba(168,85,247,0.25)'}`
                     }}
                   >
                     <img
@@ -383,18 +388,28 @@ export const OverlayView: React.FC = () => {
                       className="w-full h-full object-cover"
                     />
                   </div>
+                  {isHighlighted && (
+                    <div className="absolute" style={{
+                      top: `${-likerIconSize * 1.2}px`,
+                      fontSize: `${likerIconSize * 0.8}px`,
+                      filter: 'drop-shadow(0 0 8px rgba(236,72,153,0.8))',
+                      animation: 'ping 0.8s ease-in-out infinite'
+                    }}>
+                      ⚡
+                    </div>
+                  )}
                   <div
                     className="spectator-badge rounded-full whitespace-nowrap font-bold"
                     style={{
                       fontSize: `${likerFontSize}px`,
-                      color: seat.isNorth ? '#f9a8d4' : '#d8b4fe',
-                      backgroundColor: 'rgba(15, 23, 42, 0.7)',
+                      color: isHighlighted ? '#fff' : (seat.isNorth ? '#f9a8d4' : '#d8b4fe'),
+                      backgroundColor: isHighlighted ? 'rgba(236,72,153,0.85)' : 'rgba(15, 23, 42, 0.7)',
                       padding: `${0.06 * scale}vw ${0.2 * scale}vw`,
                       marginTop: `${0.1 * scale}vw`,
-                      border: `1px solid ${seat.isNorth ? 'rgba(236,72,153,0.2)' : 'rgba(168,85,247,0.2)'}`
+                      border: `1px solid ${isHighlighted ? 'rgba(236,72,153,0.8)' : (seat.isNorth ? 'rgba(236,72,153,0.2)' : 'rgba(168,85,247,0.2)')}`
                     }}
                   >
-                    {showName ? `${liker.username} ` : ''}{liker.likeCount}
+                    {isHighlighted ? '❤️ ' : ''}{showName ? `${liker.username} ` : ''}{liker.likeCount}
                   </div>
                 </div>
               );
