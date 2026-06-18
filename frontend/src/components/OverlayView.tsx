@@ -267,7 +267,6 @@ export const OverlayView: React.FC = () => {
 
         const rows = 4;
         const cols = 10;
-        const seatsPerStand = rows * cols;
 
         const posNorth = parseInt(settings.top_likers_position_north || '100', 10) / 300;
         const posSouth = parseInt(settings.top_likers_position_south || '100', 10) / 300;
