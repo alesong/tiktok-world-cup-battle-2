@@ -1,25 +1,28 @@
 // Web Audio API Synthesizer for lag-free, dependency-free sports sound effects
 export class SoundSynth {
   private ctx: AudioContext | null = null;
+  private resumePromise: Promise<void> | null = null;
 
   constructor() {
-    // Initialized on first user interaction to satisfy browser security policies
   }
 
-  private initCtx() {
+  private async ensureCtx(): Promise<AudioContext> {
     if (!this.ctx) {
       const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
       this.ctx = new AudioCtxClass();
     }
-    if (this.ctx.state === 'suspended') {
-      this.ctx.resume();
+    if (this.ctx.state === 'suspended' && !this.resumePromise) {
+      this.resumePromise = this.ctx.resume().then(() => { this.resumePromise = null; }).catch(() => { this.resumePromise = null; });
+    }
+    if (this.resumePromise) {
+      await this.resumePromise;
     }
     return this.ctx;
   }
 
-  public play(type: 'whistle' | 'kick' | 'goal' | 'cheer' | 'beep' | 'win' | 'grass' | 'drum' | 'band', volume: number = 0.5) {
+  public async play(type: 'whistle' | 'kick' | 'goal' | 'cheer' | 'beep' | 'win' | 'grass' | 'drum' | 'band', volume: number = 0.5) {
     try {
-      const ctx = this.initCtx();
+      const ctx = await this.ensureCtx();
       const masterGain = ctx.createGain();
       masterGain.gain.setValueAtTime(volume, ctx.currentTime);
       masterGain.connect(ctx.destination);

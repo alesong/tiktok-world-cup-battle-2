@@ -51,7 +51,12 @@ export const OverlayView: React.FC = () => {
         console.log('[Overlay] poll got settings:', data.settings?.scoreboard_text_scale, data.settings?.top_donors_icon_size);
         if (data.settings) {
           const currentSettings = useGameStore.getState().settings;
-          useGameStore.setState({ settings: { ...currentSettings, ...data.settings }, donors: data.donors || [], likers: data.likers || [] });
+          useGameStore.setState({
+            settings: { ...currentSettings, ...data.settings },
+            donors: data.donors || [],
+            likers: data.likers || [],
+            ballProgress: data.ballProgress ?? useGameStore.getState().ballProgress
+          });
         }
       } catch { /* ignore */ }
     };
@@ -249,7 +254,7 @@ export const OverlayView: React.FC = () => {
     <div
       style={containerStyle}
       className="antialiased font-sans"
-      onClick={() => globalSoundSynth.play('kick', 0)}
+      onClick={() => { globalSoundSynth.play('kick', 0).catch(() => {}); }}
     >
 
       {/* Background container for Phaser canvas */}

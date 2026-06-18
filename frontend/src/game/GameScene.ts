@@ -511,6 +511,15 @@ export class GameScene extends Phaser.Scene {
   }
 
   // --- CELEBRATIONS & PARTICLE PARTICULARS ---
+
+  private drawHeart(g: Phaser.GameObjects.Graphics, size: number) {
+    const r = size * 0.5;
+    g.fillCircle(-r * 0.45, -r * 0.3, r * 0.45);
+    g.fillCircle(r * 0.45, -r * 0.3, r * 0.45);
+    const t = r * 0.7;
+    g.fillTriangle(-t, -r * 0.15, t, -r * 0.15, 0, r * 0.85);
+  }
+
   private triggerGoalCelebration() {
     this.cameras.main.zoomTo(1.15, 300, 'Quad.easeOut');
     this.cameras.main.shake(250, 0.015);
@@ -522,9 +531,15 @@ export class GameScene extends Phaser.Scene {
     // Spawn 140 Confetti
     for (let i = 0; i < 140; i++) {
       const colors = [0xf59e0b, 0xef4444, 0x3b82f6, 0x10b981, 0xec4899, 0xffffff];
+      const color = Phaser.Utils.Array.GetRandom(colors);
       const particle = this.add.graphics();
-      particle.fillStyle(Phaser.Utils.Array.GetRandom(colors), 1.0);
-      particle.fillRect(-4, -4, 8, 8);
+      particle.fillStyle(color, 1.0);
+      
+      if (Math.random() < 0.3) {
+        this.drawHeart(particle, 16);
+      } else {
+        particle.fillRect(-8, -8, 16, 16);
+      }
       
       particle.x = Phaser.Math.Between(100, 1820);
       particle.y = Phaser.Math.Between(-80, -20);
@@ -612,17 +627,20 @@ export class GameScene extends Phaser.Scene {
   }
 
   private triggerLikeCelebration(count: number) {
-    const numSparks = Math.min(count, 500); // cap to 500 sparks to avoid lag
-    const colors = [0xffffff, 0xfde047, 0xfcd34d, 0xfef08a];
+    const numSparks = Math.min(count, 500);
+    const colors = [0xffffff, 0xfde047, 0xfcd34d, 0xfef08a, 0xec4899, 0xf43f5e, 0xef4444, 0xfb7185];
 
     for (let i = 0; i < numSparks; i++) {
+      const color = Phaser.Utils.Array.GetRandom(colors);
       const p = this.add.graphics();
-      p.fillStyle(Phaser.Utils.Array.GetRandom(colors), 1.0);
+      p.fillStyle(color, 1.0);
       
-      // Draw a small heart or star for likes
-      p.fillCircle(0, 0, Phaser.Math.Between(3, 6));
+      if (Math.random() < 0.3) {
+        this.drawHeart(p, Phaser.Math.Between(10, 18));
+      } else {
+        p.fillCircle(0, 0, Phaser.Math.Between(6, 12));
+      }
       
-      // Spawn around the center or randomly on the pitch
       p.x = Phaser.Math.Between(400, 1520);
       p.y = Phaser.Math.Between(this.centerY - 200, this.centerY + 200);
       

@@ -265,10 +265,9 @@ export class TikTokLiveService {
   // --- GAME LOGIC PIPELINE ---
 
   public async handleGift(event: { username: string; giftName: string; count: number; avatar: string }) {
-    // Serialize gift processing to prevent race conditions (e.g., double goals)
     const process = async () => {
     const matchState = await getSettingValue('match_state');
-    if (matchState !== 'playing') return;
+    const isMatchPlaying = matchState === 'playing';
 
     const giftValuesRaw = await getSettingValue('gift_values');
     const giftValues = JSON.parse(giftValuesRaw || '{}');
@@ -296,7 +295,6 @@ export class TikTokLiveService {
 
     const teamId = await getSettingValue(`${teamSide}_team_id`) || (teamSide === 'local' ? 'ARG' : 'BRA');
 
-    // Upsert donor with diamonds increment
     const existingDonor = await prisma.twcDonor.findUnique({ where: { username: event.username } });
     if (existingDonor) {
       await prisma.twcDonor.update({
@@ -333,14 +331,19 @@ export class TikTokLiveService {
     let isGoal = false;
     let scoringTeam: 'local' | 'visitor' = 'local';
 
-    if (progress >= goalDistance) {
-      isGoal = true;
-      scoringTeam = 'local';
-      progress = 0;
-    } else if (progress <= -goalDistance) {
-      isGoal = true;
-      scoringTeam = 'visitor';
-      progress = 0;
+    if (isMatchPlaying) {
+      if (progress >= goalDistance) {
+        isGoal = true;
+        scoringTeam = 'local';
+        progress = 0;
+      } else if (progress <= -goalDistance) {
+        isGoal = true;
+        scoringTeam = 'visitor';
+        progress = 0;
+      }
+    } else {
+      if (progress >= goalDistance) progress = goalDistance - 1;
+      if (progress <= -goalDistance) progress = -goalDistance + 1;
     }
 
     await updateSetting('ball_progress', progress.toString());
@@ -356,10 +359,10 @@ export class TikTokLiveService {
       avatar: event.avatar
     });
 
+    await this.broadcastDonors();
+
     if (isGoal) {
       await this.handleGoal(scoringTeam, event.username);
-    } else {
-      await this.broadcastDonors();
     }
     };
     this.giftProcessingQueue = this.giftProcessingQueue.then(process).catch(err => {
@@ -367,6 +370,9 @@ export class TikTokLiveService {
     });
     return this.giftProcessingQueue;
   }
+
+  private likeThrottleTimer: any = null;
+  private likeBatchCount: number = 0;
 
   public async handleLike(event: { username: string; likeCount: number; avatar: string }) {
     const existing = this.likers.get(event.username);
@@ -377,14 +383,22 @@ export class TikTokLiveService {
       this.likers.set(event.username, { username: event.username, likeCount: event.likeCount, avatar: event.avatar });
     }
 
-    this.io.emit('game_action', {
-      type: 'like',
-      username: event.username,
-      likeCount: event.likeCount,
-      avatar: event.avatar
-    });
+    this.likeBatchCount += event.likeCount;
 
-    await this.broadcastLikers();
+    if (!this.likeThrottleTimer) {
+      this.likeThrottleTimer = setTimeout(() => {
+        this.likeThrottleTimer = null;
+        const batch = this.likeBatchCount;
+        this.likeBatchCount = 0;
+        this.io.emit('game_action', {
+          type: 'like',
+          username: '',
+          likeCount: batch,
+          avatar: ''
+        });
+        this.broadcastLikers();
+      }, 150);
+    }
   }
 
   public getLikers() {
@@ -408,8 +422,9 @@ export class TikTokLiveService {
   }
 
   public async handleShare(event: { username: string; avatar: string }) {
+    const process = async () => {
     const matchState = await getSettingValue('match_state');
-    if (matchState !== 'playing') return;
+    const isMatchPlaying = matchState === 'playing';
 
     const shareDonor = await prisma.twcDonor.findUnique({ where: { username: event.username } });
     let teamSide: 'local' | 'visitor' = 'local';
@@ -442,15 +457,22 @@ export class TikTokLiveService {
 
     await updateSetting('ball_progress', progress.toString());
 
-    this.io.emit('game_action', {
-      type: 'share',
-      username: event.username,
-      teamSide,
-      progress,
-      avatar: event.avatar
-    });
+    if (isMatchPlaying) {
+      this.io.emit('game_action', {
+        type: 'share',
+        username: event.username,
+        teamSide,
+        progress,
+        avatar: event.avatar
+      });
+    }
 
     await this.broadcastDonors();
+    };
+    this.giftProcessingQueue = this.giftProcessingQueue.then(process).catch(err => {
+      console.error('Error processing share:', err);
+    });
+    return this.giftProcessingQueue;
   }
 
   public async handleFollow(event: { username: string; avatar: string }) {

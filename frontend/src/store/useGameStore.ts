@@ -265,13 +265,13 @@ export const useGameStore = create<GameState>((set, get) => {
       }
     },
 
-    triggerSound: (soundType) => {
+    triggerSound: async (soundType) => {
       const synth = get().soundSynth;
       const settings = get().settings;
       const specificVolStr = settings?.[`vol_${soundType}` as keyof GameSettings] as string | undefined;
       const vol = parseFloat(specificVolStr ?? settings?.volume ?? '0.5');
       if (synth && typeof synth.play === 'function') {
-        synth.play(soundType, vol);
+        try { await synth.play(soundType, vol); } catch {}
       }
     },
 

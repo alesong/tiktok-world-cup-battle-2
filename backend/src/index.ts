@@ -93,6 +93,7 @@ app.get('/api/settings', async (req, res) => {
       teams: teams || [],
       recentMatches: recentMatches || [],
       donors: donors || [],
+      ballProgress: parseInt(settings.ball_progress || '0', 10),
       likers: tiktokService.getLikers().slice(0, likersCount),
       tiktok: tiktokService.getConnectionState()
     });
