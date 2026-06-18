@@ -310,6 +310,7 @@ export const OverlayView: React.FC = () => {
               const seat = assigned[idx];
               if (!seat) return null;
               const delay = (idx * 0.4) % 3;
+              const showName = settings.top_likers_show_name !== 'false';
               return (
                 <div
                   key={liker.username}
@@ -348,7 +349,7 @@ export const OverlayView: React.FC = () => {
                         border: '1px solid rgba(236, 72, 153, 0.25)'
                       }}
                     >
-                      {liker.likeCount}
+                      {showName ? `${liker.username} ` : ''}{liker.likeCount}
                     </div>
                   )}
                 </div>

@@ -1066,6 +1066,19 @@ export const AdminPanel: React.FC = () => {
                         className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-100 font-bold"
                       />
                     </div>
+                    <div>
+                      <label className="block text-[10px] uppercase text-slate-400 font-semibold mb-1">
+                        Mostrar Nombre
+                      </label>
+                      <select
+                        value={settings.top_likers_show_name ?? 'true'}
+                        onChange={(e) => handleFieldChange('top_likers_show_name', e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-100 font-bold"
+                      >
+                        <option value="true">Sí</option>
+                        <option value="false">No</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 
