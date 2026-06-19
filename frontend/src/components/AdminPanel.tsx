@@ -1558,7 +1558,14 @@ tiktokState.error === 'max_reconnect' ? 'Conexión perdida - Máx. reintentos' :
                               <span className="text-slate-500">—</span>
                             )}
                           </td>
-                          <td className="px-4 py-2.5 text-right">
+                          <td className="px-4 py-2.5 text-right flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => simulateEvent({ type: 'gift', giftName: item.name, count: 1 })}
+                              className="text-emerald-400 hover:text-emerald-300 p-1"
+                              title="Simular donación"
+                            >
+                              <Play className="h-4 w-4" />
+                            </button>
                             <button
                               onClick={() => removeGiftRow(item.name)}
                               className="text-red-400 hover:text-red-300 p-1"
