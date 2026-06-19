@@ -289,6 +289,9 @@ export const useGameStore = create<GameState>((set, get) => {
       if (existingSocket) {
         existingSocket.removeAllListeners();
         existingSocket.disconnect();
+        if ((existingSocket as any).__heartbeat) {
+          clearInterval((existingSocket as any).__heartbeat);
+        }
       }
 
       set({ isConnecting: true, isConnected: false });
@@ -299,7 +302,7 @@ export const useGameStore = create<GameState>((set, get) => {
         reconnectionAttempts: Infinity,
         reconnectionDelay: 2000,
         reconnectionDelayMax: 10000,
-        transports: ['websocket']
+        transports: ['websocket', 'polling']
       });
 
       socket.on('connect', () => {
@@ -611,6 +614,13 @@ export const useGameStore = create<GameState>((set, get) => {
         visibility: onVisibilityChange,
         focus: onWindowFocus
       };
+
+      // Heartbeat cada 20s para mantener la conexión activa en pestañas background
+      (socket as any).__heartbeat = setInterval(() => {
+        if (socket.connected) {
+          socket.volatile.emit('heartbeat', Date.now());
+        }
+      }, 20000);
 
       set({ socket });
     }
