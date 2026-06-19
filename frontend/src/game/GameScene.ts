@@ -139,11 +139,15 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    // 1. Interpolate Ball Position (LERP)
-    // Turbo doubles the interpolation speed for snappy feedback!
+    // 1. Interpolate Ball Position (LERP) — snap to target when close to avoid micro-movements
     const lerpFactor = isTurbo ? 0.18 : 0.09;
     const prevX = this.currentBallX;
-    this.currentBallX = Phaser.Math.Linear(this.currentBallX, this.targetBallX, lerpFactor);
+    const distToTarget = this.targetBallX - this.currentBallX;
+    if (Math.abs(distToTarget) < 1) {
+      this.currentBallX = this.targetBallX;
+    } else {
+      this.currentBallX += distToTarget * lerpFactor;
+    }
     
     const speed = Math.abs(this.currentBallX - prevX);
 
@@ -155,17 +159,15 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    // 2. Ball bouncing physics (amplitude and phase relative to speed)
-    if (matchState === 'playing' && speed > 0.1) {
+    // 2. Ball bouncing physics — only bounce while ball is moving
+    if (speed > 0.5) {
       this.ballBouncePhase += speed * 0.15;
-    } else if (matchState === 'celebrating') {
-      this.ballBouncePhase += 0.2;
     } else {
-      this.ballBouncePhase = Phaser.Math.Linear(this.ballBouncePhase, 0, 0.1);
+      this.ballBouncePhase = Phaser.Math.Linear(this.ballBouncePhase, 0, 0.08);
     }
     
-    // Bounce amplitude up to 22px
-    const bounceHeight = Math.abs(Math.sin(this.ballBouncePhase)) * -22 * (speed > 1 ? 1.5 : 1);
+    // Bounce amplitude: proportional to speed
+    const bounceHeight = Math.abs(Math.sin(this.ballBouncePhase)) * -22 * Math.min(1.5, Math.max(0.2, speed * 0.5));
 
     // Random vertical wander for players + ball when playing
     if (matchState === 'playing') {
@@ -176,7 +178,7 @@ export class GameScene extends Phaser.Scene {
         this.playerVisitorYTarget = Phaser.Math.Between(-range, range);
         this.ballYTarget = Phaser.Math.Between(-range, range);
       }
-    } else if (matchState === 'idle' || matchState === 'finished') {
+    } else {
       this.playerLocalYTarget = 0;
       this.playerVisitorYTarget = 0;
       this.ballYTarget = 0;
@@ -439,14 +441,15 @@ export class GameScene extends Phaser.Scene {
   }
 
   // --- STRIDE RUNNING ANIME ---
-  private animatePlayers(time: number, _speed: number) {
+  private animatePlayers(time: number, speed: number) {
     const matchState = useGameStore.getState().matchState;
     const isPlaying = matchState === 'playing';
+    const isMoving = speed > 0.5;
     
-    // Running speed factor
-    const runCycle = time * (isPlaying ? 0.018 : 0.005);
-    const swingAmp = isPlaying ? 35 : 10;
-    const bounceAmp = isPlaying ? 4 : 1;
+    // Running speed factor — no stride animation when ball is stationary
+    const runCycle = time * (isPlaying && isMoving ? 0.018 : 0);
+    const swingAmp = isPlaying && isMoving ? 35 : 0;
+    const bounceAmp = isPlaying && isMoving ? 4 : 0;
 
     // Set player visual targets: players hover around the ball
     // Local (Left) chases ball from left; Visitor (Right) chases ball from right
