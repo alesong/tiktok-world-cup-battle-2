@@ -79,6 +79,7 @@ export const AdminPanel: React.FC = () => {
   const [newGiftValue, setNewGiftValue] = useState(1);
   const [newGiftTeam, setNewGiftTeam] = useState<'local' | 'visitor'>('local');
   const [newGiftImage, setNewGiftImage] = useState('');
+  const [simCounts, setSimCounts] = useState<Record<string, number>>({});
 
   // TikTok Connection State
   const [isTikTokConnecting, setIsTikTokConnecting] = useState(false);
@@ -1559,8 +1560,16 @@ tiktokState.error === 'max_reconnect' ? 'Conexión perdida - Máx. reintentos' :
                             )}
                           </td>
                           <td className="px-4 py-2.5 text-right flex items-center justify-end gap-1">
+                            <input
+                              type="number"
+                              min="1"
+                              value={simCounts[item.name] || 1}
+                              onChange={(e) => setSimCounts(prev => ({ ...prev, [item.name]: Math.max(1, parseInt(e.target.value) || 1) }))}
+                              className="w-10 bg-slate-950 border border-slate-700 rounded text-xs text-slate-100 text-center p-0.5"
+                              title="Cantidad a simular"
+                            />
                             <button
-                              onClick={() => simulateEvent({ type: 'gift', giftName: item.name, count: 1 })}
+                              onClick={() => simulateEvent({ type: 'gift', giftName: item.name, count: simCounts[item.name] || 1 })}
                               className="text-emerald-400 hover:text-emerald-300 p-1"
                               title="Simular donación"
                             >
