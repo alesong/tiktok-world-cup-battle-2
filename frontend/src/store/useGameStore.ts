@@ -508,6 +508,9 @@ export const useGameStore = create<GameState>((set, get) => {
               details: 'compartió el stream',
               avatar: action.avatar
             });
+            if (action.username) {
+              get().speak(`${action.username} invitó a sus amigos a ver el partido`);
+            }
             break;
           case 'follow':
             get().triggerSound('cheer');

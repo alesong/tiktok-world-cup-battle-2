@@ -4,6 +4,25 @@ export class SoundSynth {
   private resumePromise: Promise<void> | null = null;
 
   constructor() {
+    // Keep AudioContext alive by playing silence every 20s to prevent browser suspension
+    setInterval(() => {
+      this.keepAlive();
+    }, 20000);
+  }
+
+  private async keepAlive() {
+    try {
+      const ctx = await this.ensureCtx();
+      if (ctx.state === 'running') {
+        const osc = ctx.createOscillator();
+        const silent = ctx.createGain();
+        silent.gain.value = 0;
+        osc.connect(silent);
+        silent.connect(ctx.destination);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.01);
+      }
+    } catch {}
   }
 
   private async ensureCtx(): Promise<AudioContext> {
@@ -11,11 +30,18 @@ export class SoundSynth {
       const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
       this.ctx = new AudioCtxClass();
     }
-    if (this.ctx.state === 'suspended' && !this.resumePromise) {
-      this.resumePromise = this.ctx.resume().then(() => { this.resumePromise = null; }).catch(() => { this.resumePromise = null; });
-    }
-    if (this.resumePromise) {
-      await this.resumePromise;
+    if (this.ctx.state === 'suspended') {
+      if (!this.resumePromise) {
+        this.resumePromise = this.ctx.resume().then(() => { this.resumePromise = null; }).catch(() => { this.resumePromise = null; });
+      }
+      if (this.resumePromise) {
+        await this.resumePromise;
+      }
+      // Retry once if still suspended after resume
+      if (this.ctx.state === 'suspended') {
+        this.resumePromise = this.ctx.resume().then(() => { this.resumePromise = null; }).catch(() => { this.resumePromise = null; });
+        await this.resumePromise;
+      }
     }
     return this.ctx;
   }

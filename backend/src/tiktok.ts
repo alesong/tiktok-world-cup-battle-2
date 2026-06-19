@@ -37,6 +37,16 @@ export class TikTokLiveService {
   private recentFollows: Map<string, number> = new Map();
   private readonly followDedupMs: number = 10000;
   private giftProcessingQueue: Promise<void> = Promise.resolve();
+  private giftBatches: Map<string, {
+    username: string;
+    giftName: string;
+    count: number;
+    avatar: string;
+    teamSide: 'local' | 'visitor';
+    baseValue: number;
+    timer: NodeJS.Timeout;
+  }> = new Map();
+  private readonly GIFT_BATCH_MS = 400;
   private likers: Map<string, { username: string; likeCount: number; avatar: string }> = new Map();
 
   constructor(io: Server) {
@@ -265,18 +275,22 @@ export class TikTokLiveService {
   // --- GAME LOGIC PIPELINE ---
 
   public async handleGift(event: { username: string; giftName: string; count: number; avatar: string }) {
-    const process = async () => {
-    const matchState = await getSettingValue('match_state');
-    const isMatchPlaying = matchState === 'playing';
+    const key = `${event.username}:${event.giftName}`;
+    const existing = this.giftBatches.get(key);
 
+    if (existing) {
+      existing.count += event.count;
+      existing.avatar = event.avatar;
+      clearTimeout(existing.timer);
+      existing.timer = setTimeout(() => this.flushBatch(key), this.GIFT_BATCH_MS);
+      return;
+    }
+
+    // Resolve gift value and team side once per batch
     const giftValuesRaw = await getSettingValue('gift_values');
     const giftValues = JSON.parse(giftValuesRaw || '{}');
-
     const giftData = giftValues[event.giftName];
     const baseValue = typeof giftData === 'number' ? giftData : (giftData?.value || 1);
-
-    const multiplier = parseInt(await getSettingValue('event_multiplier') || '1', 10);
-    const totalDiamonds = baseValue * event.count * multiplier;
 
     let teamSide: 'local' | 'visitor' = 'local';
     const isConfiguredGift = giftData !== undefined && giftData !== null;
@@ -293,82 +307,106 @@ export class TikTokLiveService {
       }
     }
 
-    const teamId = await getSettingValue(`${teamSide}_team_id`) || (teamSide === 'local' ? 'ARG' : 'BRA');
-
-    const existingDonor = await prisma.twcDonor.findUnique({ where: { username: event.username } });
-    if (existingDonor) {
-      await prisma.twcDonor.update({
-        where: { username: event.username },
-        data: {
-          diamonds: (existingDonor.diamonds ?? 0) + totalDiamonds,
-          teamId,
-          avatar: event.avatar
-        }
-      });
-    } else {
-      await prisma.twcDonor.create({
-        data: {
-          username: event.username,
-          diamonds: totalDiamonds,
-          teamId,
-          avatar: event.avatar
-        }
-      });
-    }
-
-    let progress = parseInt(await getSettingValue('ball_progress') || '0', 10);
-    const goalDistance = parseInt(await getSettingValue('goal_distance_diamonds') || '200', 10);
-
-    const isTurbo = (await getSettingValue('event_turbo')) === 'true';
-    const movementAmount = totalDiamonds * (isTurbo ? 2 : 1);
-
-    if (teamSide === 'local') {
-      progress += movementAmount;
-    } else {
-      progress -= movementAmount;
-    }
-
-    let isGoal = false;
-    let scoringTeam: 'local' | 'visitor' = 'local';
-
-    if (isMatchPlaying) {
-      if (progress >= goalDistance) {
-        isGoal = true;
-        scoringTeam = 'local';
-        progress = 0;
-      } else if (progress <= -goalDistance) {
-        isGoal = true;
-        scoringTeam = 'visitor';
-        progress = 0;
-      }
-    } else {
-      if (progress >= goalDistance) progress = goalDistance - 1;
-      if (progress <= -goalDistance) progress = -goalDistance + 1;
-    }
-
-    await updateSetting('ball_progress', progress.toString());
-
-    this.io.emit('game_action', {
-      type: 'gift',
+    const timer = setTimeout(() => this.flushBatch(key), this.GIFT_BATCH_MS);
+    this.giftBatches.set(key, {
       username: event.username,
       giftName: event.giftName,
       count: event.count,
-      diamonds: totalDiamonds,
+      avatar: event.avatar,
       teamSide,
-      progress,
-      avatar: event.avatar
+      baseValue,
+      timer,
     });
+  }
 
-    await this.broadcastDonors();
+  private flushBatch(key: string) {
+    const batch = this.giftBatches.get(key);
+    if (!batch) return;
+    this.giftBatches.delete(key);
 
-    if (isGoal) {
-      await this.handleGoal(scoringTeam, event.username);
-    }
+    const processBatch = async () => {
+      const matchState = await getSettingValue('match_state');
+      const isMatchPlaying = matchState === 'playing';
+
+      const multiplier = parseInt(await getSettingValue('event_multiplier') || '1', 10);
+      const totalDiamonds = batch.baseValue * batch.count * multiplier;
+
+      const teamId = await getSettingValue(`${batch.teamSide}_team_id`) || (batch.teamSide === 'local' ? 'ARG' : 'BRA');
+
+      const existingDonor = await prisma.twcDonor.findUnique({ where: { username: batch.username } });
+      if (existingDonor) {
+        await prisma.twcDonor.update({
+          where: { username: batch.username },
+          data: {
+            diamonds: (existingDonor.diamonds ?? 0) + totalDiamonds,
+            teamId,
+            avatar: batch.avatar
+          }
+        });
+      } else {
+        await prisma.twcDonor.create({
+          data: {
+            username: batch.username,
+            diamonds: totalDiamonds,
+            teamId,
+            avatar: batch.avatar
+          }
+        });
+      }
+
+      let progress = parseInt(await getSettingValue('ball_progress') || '0', 10);
+      const goalDistance = parseInt(await getSettingValue('goal_distance_diamonds') || '200', 10);
+
+      const isTurbo = (await getSettingValue('event_turbo')) === 'true';
+      const movementAmount = totalDiamonds * (isTurbo ? 2 : 1);
+
+      if (batch.teamSide === 'local') {
+        progress += movementAmount;
+      } else {
+        progress -= movementAmount;
+      }
+
+      let isGoal = false;
+      let scoringTeam: 'local' | 'visitor' = 'local';
+
+      if (isMatchPlaying) {
+        if (progress >= goalDistance) {
+          isGoal = true;
+          scoringTeam = 'local';
+          progress = 0;
+        } else if (progress <= -goalDistance) {
+          isGoal = true;
+          scoringTeam = 'visitor';
+          progress = 0;
+        }
+      } else {
+        if (progress >= goalDistance) progress = goalDistance - 1;
+        if (progress <= -goalDistance) progress = -goalDistance + 1;
+      }
+
+      await updateSetting('ball_progress', progress.toString());
+
+      this.io.emit('game_action', {
+        type: 'gift',
+        username: batch.username,
+        giftName: batch.giftName,
+        count: batch.count,
+        diamonds: totalDiamonds,
+        teamSide: batch.teamSide,
+        progress,
+        avatar: batch.avatar
+      });
+
+      await this.broadcastDonors();
+
+      if (isGoal) {
+        await this.handleGoal(scoringTeam, batch.username);
+      }
     };
-    this.giftProcessingQueue = this.giftProcessingQueue.then(process).catch(err => {
-      console.error('Error processing gift:', err);
+
+    this.giftProcessingQueue = this.giftProcessingQueue.then(processBatch).catch(err => {
+      console.error('Error processing gift batch:', err);
     });
-    return this.giftProcessingQueue;
   }
 
   private likeThrottleTimer: any = null;

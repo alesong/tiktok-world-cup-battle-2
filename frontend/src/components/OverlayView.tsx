@@ -521,7 +521,10 @@ export const OverlayView: React.FC = () => {
                       ) : (
                         <span className="drop-shadow-lg" style={{ fontSize: `${1.56 * scale * giftCardScale * cardScale}vw`, marginBottom: `${0.1 * scale}vw` }}>{gift.icon}</span>
                       )}
-                      <span className="font-sports font-bold text-white tracking-wider uppercase text-center" style={{ fontSize: `${0.52 * scale * giftCardScale}vw` }}>PATEAR BALÓN {gift.value} PASOS</span>
+                      <div className="flex flex-col items-center" style={{ fontSize: `${0.52 * scale * giftCardScale}vw` }}>
+                        <span className="font-sports font-bold text-white tracking-wider uppercase text-center">PATEAR BALÓN</span>
+                        <span className="font-sports font-bold text-amber-400 tracking-wider uppercase text-center leading-none">{gift.value} PASOS</span>
+                      </div>
                       <div className="text-amber-500 font-black animate-pulse" style={{ fontSize: `${1.56 * scale * giftCardScale * cardScale}vw`, marginTop: `${0.1 * scale}vw` }}>➔</div>
                     </div>
                   );
@@ -568,7 +571,10 @@ export const OverlayView: React.FC = () => {
                       ) : (
                         <span className="drop-shadow-lg" style={{ fontSize: `${1.56 * scale * giftCardScale * cardScale}vw`, marginBottom: `${0.1 * scale}vw` }}>{gift.icon}</span>
                       )}
-                      <span className="font-sports font-bold text-white tracking-wider uppercase text-center" style={{ fontSize: `${0.52 * scale * giftCardScale}vw` }}>PATEAR BALÓN {gift.value} PASOS</span>
+                      <div className="flex flex-col items-center" style={{ fontSize: `${0.52 * scale * giftCardScale}vw` }}>
+                        <span className="font-sports font-bold text-white tracking-wider uppercase text-center">PATEAR BALÓN</span>
+                        <span className="font-sports font-bold text-amber-400 tracking-wider uppercase text-center leading-none">{gift.value} PASOS</span>
+                      </div>
                       <div className="text-amber-500 font-black animate-pulse" style={{ fontSize: `${1.56 * scale * giftCardScale * cardScale}vw`, marginTop: `${0.1 * scale}vw` }}>←</div>
                     </div>
                   );
@@ -793,7 +799,7 @@ export const OverlayView: React.FC = () => {
               ⚽🔥⚽
             </div>
 
-            <h1 className="font-sports font-black text-neon-gold text-[120px] leading-none uppercase text-amber-500 mt-4 tracking-tighter scale-110">
+            <h1 className="font-sports font-black text-neon-gold text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl 2xl:text-[120px] leading-none uppercase text-amber-500 mt-4 tracking-tighter max-w-full overflow-hidden">
               GOOOOOOOOOL
             </h1>
 

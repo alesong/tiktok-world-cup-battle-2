@@ -32,6 +32,11 @@ export class GameScene extends Phaser.Scene {
   private fireworkParticles: any[] = [];
   private likeParticles: any[] = [];
 
+  // Guard flags to prevent re-triggering celebrations
+  private isGoalCelebrating = false;
+  private lastGiftTime = 0;
+  private postGoalReturnTimer = 0;
+
   // Store the bound listener so we can remove it on destroy
   private handleLikeEvent = (e: Event) => {
     const customEvent = e as CustomEvent;
@@ -72,19 +77,29 @@ export class GameScene extends Phaser.Scene {
     useGameStore.subscribe((state) => {
       this.updateTeams(state.localTeam, state.visitorTeam);
       
+      if (state.matchState === 'celebrating') {
+        this.triggerGoalCelebration();
+      } else if (state.matchState === 'idle' || state.matchState === 'finished') {
+        this.targetBallX = 960;
+        this.cameras.main.zoomTo(1.0, 500);
+        this.isGoalCelebrating = false;
+        this.postGoalReturnTimer = 0;
+      }
+
+      // When match resumes after goal, start a 3s delay before ball returns to center
+      if (state.matchState === 'playing' && this.isGoalCelebrating) {
+        this.postGoalReturnTimer = 3000;
+      }
+
+      // Don't update ball position during post-goal return delay
+      if (this.postGoalReturnTimer > 0) return;
+
       const maxDiamonds = parseInt(state.settings.goal_distance_diamonds || '200', 10);
       const maxPixels = parseInt(state.settings.goal_distance_pixels || '600', 10);
       
       // Calculate visual X and clamp to goal line boundaries
       const ratio = Math.max(-1, Math.min(1, state.ballProgress / maxDiamonds));
       this.targetBallX = 960 + (ratio * maxPixels);
-
-      if (state.matchState === 'celebrating') {
-        this.triggerGoalCelebration();
-      } else if (state.matchState === 'idle' || state.matchState === 'finished') {
-        this.targetBallX = 960;
-        this.cameras.main.zoomTo(1.0, 500);
-      }
     });
 
     // Seed initial values from current state immediately
@@ -109,6 +124,20 @@ export class GameScene extends Phaser.Scene {
     const store = useGameStore.getState();
     const matchState = store.matchState;
     const isTurbo = store.settings.event_turbo === 'true';
+
+    // Decrement post-goal return timer
+    if (this.postGoalReturnTimer > 0) {
+      this.postGoalReturnTimer -= _delta;
+      if (this.postGoalReturnTimer <= 0) {
+        this.postGoalReturnTimer = 0;
+        this.isGoalCelebrating = false;
+        // Restore normal ball position immediately
+        const maxDiamonds = parseInt(store.settings.goal_distance_diamonds || '200', 10);
+        const maxPixels = parseInt(store.settings.goal_distance_pixels || '600', 10);
+        const ratio = Math.max(-1, Math.min(1, store.ballProgress / maxDiamonds));
+        this.targetBallX = 960 + (ratio * maxPixels);
+      }
+    }
 
     // 1. Interpolate Ball Position (LERP)
     // Turbo doubles the interpolation speed for snappy feedback!
@@ -520,9 +549,24 @@ export class GameScene extends Phaser.Scene {
     g.fillTriangle(-t, -r * 0.15, t, -r * 0.15, 0, r * 0.85);
   }
 
+  private destroyParticleArray(arr: any[]) {
+    for (const p of arr) {
+      if (p && p.destroy) p.destroy();
+    }
+    arr.length = 0;
+  }
+
   private triggerGoalCelebration() {
+    if (this.isGoalCelebrating) return;
+    this.isGoalCelebrating = true;
+    this.postGoalReturnTimer = 0;
+
     this.cameras.main.zoomTo(1.15, 300, 'Quad.easeOut');
     this.cameras.main.shake(250, 0.015);
+
+    // Destroy existing particles to prevent accumulation on consecutive goals
+    this.destroyParticleArray(this.confettiParticles);
+    this.destroyParticleArray(this.fireworkParticles);
 
     // Actually read the scorer from the state in case of updates, we can also spawn fireworks at the scoring goal side!
     const side = this.currentBallX > 960 ? 'right' : 'left';
@@ -584,6 +628,14 @@ export class GameScene extends Phaser.Scene {
   private giftParticles: any[] = [];
 
   private triggerGiftCelebration(action: any) {
+    // Throttle: skip if gifts arriving faster than 200ms apart to prevent lag
+    const now = Date.now();
+    if (now - this.lastGiftTime < 200) return;
+    this.lastGiftTime = now;
+
+    // Cap total active gift particles to prevent accumulation
+    if (this.giftParticles.length > 300) return;
+
     let diamonds = action.diamondCount || action.diamonds || 1;
     let team = action.teamSide || 'local'; // Uses backend's properly calculated teamSide
     
