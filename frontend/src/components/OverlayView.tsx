@@ -281,12 +281,12 @@ export const OverlayView: React.FC = () => {
 
         for (let row = 0; row < rows; row++) {
           for (let col = 0; col < cols; col++) {
-            northSeats.push({ x: 3 + col * (94 / cols), y: topBase + row * rowH });
+            northSeats.push({ x: 6 + col * (88 / cols), y: topBase + row * rowH });
           }
         }
         for (let row = 0; row < rows; row++) {
           for (let col = 0; col < cols; col++) {
-            southSeats.push({ x: 3 + col * (94 / cols), y: bottomBase + row * rowH });
+            southSeats.push({ x: 6 + col * (88 / cols), y: bottomBase + row * rowH });
           }
         }
 
@@ -335,7 +335,7 @@ export const OverlayView: React.FC = () => {
               </defs>
               <rect x="0" y="0" width="100" height="100" fill={`url(#${gradTopId})`} opacity="0.6" />
               {[0, 1, 2].map(r => (
-                <rect key={r} x="3" y={10 + r * 28} width="94" height="4" rx="1" fill="#334155" opacity="0.4" />
+                <rect key={r} x="6" y={10 + r * 28} width="88" height="4" rx="1" fill="#334155" opacity="0.4" />
               ))}
             </svg>
 
@@ -350,7 +350,7 @@ export const OverlayView: React.FC = () => {
               </defs>
               <rect x="0" y="0" width="100" height="100" fill={`url(#${gradBotId})`} opacity="0.6" />
               {[0, 1, 2].map(r => (
-                <rect key={r} x="3" y={10 + r * 28} width="94" height="4" rx="1" fill="#334155" opacity="0.4" />
+                <rect key={r} x="6" y={10 + r * 28} width="88" height="4" rx="1" fill="#334155" opacity="0.4" />
               ))}
             </svg>
 
