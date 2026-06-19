@@ -37,16 +37,7 @@ export class TikTokLiveService {
   private recentFollows: Map<string, number> = new Map();
   private readonly followDedupMs: number = 10000;
   private giftProcessingQueue: Promise<void> = Promise.resolve();
-  private giftBatches: Map<string, {
-    username: string;
-    giftName: string;
-    count: number;
-    avatar: string;
-    teamSide: 'local' | 'visitor';
-    baseValue: number;
-    timer: NodeJS.Timeout;
-  }> = new Map();
-  private readonly GIFT_BATCH_MS = 400;
+  private giftAccumulator: Map<string, { count: number; avatar: string }> = new Map();
   private likers: Map<string, { username: string; likeCount: number; avatar: string }> = new Map();
 
   constructor(io: Server) {
@@ -276,80 +267,71 @@ export class TikTokLiveService {
 
   public async handleGift(event: { username: string; giftName: string; count: number; avatar: string }) {
     const key = `${event.username}:${event.giftName}`;
-    const existing = this.giftBatches.get(key);
 
+    // Accumulate: si ya hay una entrada pendiente para este usuario+regalo, sumar y salir
+    const existing = this.giftAccumulator.get(key);
     if (existing) {
       existing.count += event.count;
       existing.avatar = event.avatar;
-      clearTimeout(existing.timer);
-      existing.timer = setTimeout(() => this.flushBatch(key), this.GIFT_BATCH_MS);
       return;
     }
 
-    // Resolve gift value and team side once per batch
-    const giftValuesRaw = await getSettingValue('gift_values');
-    const giftValues = JSON.parse(giftValuesRaw || '{}');
-    const giftData = giftValues[event.giftName];
-    const baseValue = typeof giftData === 'number' ? giftData : (giftData?.value || 1);
+    // Primera donación de este par usuario+regalo: crear acumulador y encolar proceso
+    this.giftAccumulator.set(key, { count: event.count, avatar: event.avatar });
 
-    let teamSide: 'local' | 'visitor' = 'local';
-    const isConfiguredGift = giftData !== undefined && giftData !== null;
-    if (isConfiguredGift) {
-      if (typeof giftData === 'object' && giftData.team) {
-        teamSide = giftData.team;
-      }
-    } else {
-      const visitorGifts = ['TikTok', 'Perfume', 'Universo'];
-      if (visitorGifts.includes(event.giftName)) {
-        teamSide = 'visitor';
-      } else {
-        teamSide = Math.random() < 0.5 ? 'local' : 'visitor';
-      }
-    }
+    const process = async () => {
+      // Leer y drenar el acumulador
+      const acc = this.giftAccumulator.get(key);
+      if (!acc) return;
+      this.giftAccumulator.delete(key);
+      const totalCount = acc.count;
+      const currentAvatar = acc.avatar;
 
-    const timer = setTimeout(() => this.flushBatch(key), this.GIFT_BATCH_MS);
-    this.giftBatches.set(key, {
-      username: event.username,
-      giftName: event.giftName,
-      count: event.count,
-      avatar: event.avatar,
-      teamSide,
-      baseValue,
-      timer,
-    });
-  }
-
-  private flushBatch(key: string) {
-    const batch = this.giftBatches.get(key);
-    if (!batch) return;
-    this.giftBatches.delete(key);
-
-    const processBatch = async () => {
       const matchState = await getSettingValue('match_state');
       const isMatchPlaying = matchState === 'playing';
 
+      const giftValuesRaw = await getSettingValue('gift_values');
+      const giftValues = JSON.parse(giftValuesRaw || '{}');
+      const giftData = giftValues[event.giftName];
+      const baseValue = typeof giftData === 'number' ? giftData : (giftData?.value || 1);
+
       const multiplier = parseInt(await getSettingValue('event_multiplier') || '1', 10);
-      const totalDiamonds = batch.baseValue * batch.count * multiplier;
+      const totalDiamonds = baseValue * totalCount * multiplier;
 
-      const teamId = await getSettingValue(`${batch.teamSide}_team_id`) || (batch.teamSide === 'local' ? 'ARG' : 'BRA');
+      let teamSide: 'local' | 'visitor' = 'local';
+      const isConfiguredGift = giftData !== undefined && giftData !== null;
+      if (isConfiguredGift) {
+        if (typeof giftData === 'object' && giftData.team) {
+          teamSide = giftData.team;
+        }
+      } else {
+        const visitorGifts = ['TikTok', 'Perfume', 'Universo'];
+        if (visitorGifts.includes(event.giftName)) {
+          teamSide = 'visitor';
+        } else {
+          teamSide = Math.random() < 0.5 ? 'local' : 'visitor';
+        }
+      }
 
-      const existingDonor = await prisma.twcDonor.findUnique({ where: { username: batch.username } });
+      const teamId = await getSettingValue(`${teamSide}_team_id`) || (teamSide === 'local' ? 'ARG' : 'BRA');
+
+      const existingDonor = await prisma.twcDonor.findUnique({ where: { username: event.username } });
       if (existingDonor) {
         await prisma.twcDonor.update({
-          where: { username: batch.username },
+          where: { username: event.username },
           data: {
             diamonds: (existingDonor.diamonds ?? 0) + totalDiamonds,
             teamId,
-            avatar: batch.avatar
+            avatar: currentAvatar
           }
         });
       } else {
         await prisma.twcDonor.create({
           data: {
-            username: batch.username,
+            username: event.username,
             diamonds: totalDiamonds,
             teamId,
-            avatar: batch.avatar
+            avatar: currentAvatar
           }
         });
       }
@@ -360,7 +342,7 @@ export class TikTokLiveService {
       const isTurbo = (await getSettingValue('event_turbo')) === 'true';
       const movementAmount = totalDiamonds * (isTurbo ? 2 : 1);
 
-      if (batch.teamSide === 'local') {
+      if (teamSide === 'local') {
         progress += movementAmount;
       } else {
         progress -= movementAmount;
@@ -388,24 +370,24 @@ export class TikTokLiveService {
 
       this.io.emit('game_action', {
         type: 'gift',
-        username: batch.username,
-        giftName: batch.giftName,
-        count: batch.count,
+        username: event.username,
+        giftName: event.giftName,
+        count: totalCount,
         diamonds: totalDiamonds,
-        teamSide: batch.teamSide,
+        teamSide,
         progress,
-        avatar: batch.avatar
+        avatar: currentAvatar
       });
 
       await this.broadcastDonors();
 
       if (isGoal) {
-        await this.handleGoal(scoringTeam, batch.username);
+        await this.handleGoal(scoringTeam, event.username);
       }
     };
 
-    this.giftProcessingQueue = this.giftProcessingQueue.then(processBatch).catch(err => {
-      console.error('Error processing gift batch:', err);
+    this.giftProcessingQueue = this.giftProcessingQueue.then(process).catch(err => {
+      console.error('Error processing gift:', err);
     });
   }
 
