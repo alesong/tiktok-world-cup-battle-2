@@ -121,6 +121,7 @@ interface GameState {
   likeCelebration: boolean;
   lastDonor: { username: string; avatar: string; giftName?: string; diamonds?: number } | null;
   lastSpokenDonor: string | null;
+  lastSpokenShareUser: string | null;
   tiktokState: TikTokState;
   speechRate: number;
   speechVolume: number;
@@ -142,6 +143,7 @@ export const useGameStore = create<GameState>((set, get) => {
     lastLiker: null,
     lastDonor: null,
     lastSpokenDonor: null,
+    lastSpokenShareUser: null,
     upcomingReward: 'event_gold_goal',
     rewardTimeLeft: 0,
     likeCelebration: false,
@@ -511,8 +513,9 @@ export const useGameStore = create<GameState>((set, get) => {
               details: 'compartió el stream',
               avatar: action.avatar
             });
-            if (action.username) {
+            if (action.username && action.username !== get().lastSpokenShareUser) {
               get().speak(`${action.username} invitó a sus amigos a ver el partido`);
+              set({ lastSpokenShareUser: action.username });
             }
             break;
           case 'follow':
