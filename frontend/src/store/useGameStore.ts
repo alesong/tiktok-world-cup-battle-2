@@ -431,12 +431,14 @@ export const useGameStore = create<GameState>((set, get) => {
             if (lastDonorTimerId) clearTimeout(lastDonorTimerId);
             lastDonorTimerId = setTimeout(() => set({ lastDonor: null }), 4000);
 
-            // Speech donation: only if different donor
-            const { lastSpokenDonor } = get();
-            if (action.username && action.username !== lastSpokenDonor) {
-              const giftText = get().settings.speech_gift_text || 'tiene la pelota';
-              get().speak(`${action.username} ${giftText}`);
-              set({ lastSpokenDonor: action.username });
+            // Speech donation: skip if this donation caused a goal (goal event will announce the scorer)
+            if (!action.isGoal) {
+              const { lastSpokenDonor } = get();
+              if (action.username && action.username !== lastSpokenDonor) {
+                const giftText = get().settings.speech_gift_text || 'tiene la pelota';
+                get().speak(`${action.username} ${giftText}`);
+                set({ lastSpokenDonor: action.username });
+              }
             }
 
             window.dispatchEvent(new CustomEvent('tiktok_gift', { detail: action }));

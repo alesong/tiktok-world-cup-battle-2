@@ -86,18 +86,14 @@ export class GameScene extends Phaser.Scene {
         this.postGoalReturnTimer = 0;
       }
 
-      // When match resumes after goal, start a 3s delay before ball returns to center
-      if (state.matchState === 'playing' && this.isGoalCelebrating) {
+      // Start 3s delay only once when transitioning back to playing after a goal
+      if (state.matchState === 'playing' && this.isGoalCelebrating && this.postGoalReturnTimer === 0) {
         this.postGoalReturnTimer = 3000;
       }
 
-      // Don't update ball position during post-goal return delay
-      if (this.postGoalReturnTimer > 0) return;
-
+      // Always update targetBallX — ball lerps smoothly regardless of the timer
       const maxDiamonds = parseInt(state.settings.goal_distance_diamonds || '200', 10);
       const maxPixels = parseInt(state.settings.goal_distance_pixels || '600', 10);
-      
-      // Calculate visual X and clamp to goal line boundaries
       const ratio = Math.max(-1, Math.min(1, state.ballProgress / maxDiamonds));
       this.targetBallX = 960 + (ratio * maxPixels);
     });
@@ -125,17 +121,12 @@ export class GameScene extends Phaser.Scene {
     const matchState = store.matchState;
     const isTurbo = store.settings.event_turbo === 'true';
 
-    // Decrement post-goal return timer
+    // Decrement post-goal return timer — targetBallX is already kept updated by the subscribe callback
     if (this.postGoalReturnTimer > 0) {
       this.postGoalReturnTimer -= _delta;
       if (this.postGoalReturnTimer <= 0) {
         this.postGoalReturnTimer = 0;
         this.isGoalCelebrating = false;
-        // Restore normal ball position immediately
-        const maxDiamonds = parseInt(store.settings.goal_distance_diamonds || '200', 10);
-        const maxPixels = parseInt(store.settings.goal_distance_pixels || '600', 10);
-        const ratio = Math.max(-1, Math.min(1, store.ballProgress / maxDiamonds));
-        this.targetBallX = 960 + (ratio * maxPixels);
       }
     }
 

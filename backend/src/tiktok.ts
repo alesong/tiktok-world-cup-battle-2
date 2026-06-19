@@ -376,7 +376,8 @@ export class TikTokLiveService {
         diamonds: totalDiamonds,
         teamSide,
         progress,
-        avatar: currentAvatar
+        avatar: currentAvatar,
+        isGoal
       });
 
       await this.broadcastDonors();
