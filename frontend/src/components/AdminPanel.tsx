@@ -74,10 +74,11 @@ export const AdminPanel: React.FC = () => {
   const [tiktokUser, setTiktokUser] = useState('');
   
   // Custom Gift Valuations Table State
-  const [giftList, setGiftList] = useState<{ name: string; value: number; team: 'local' | 'visitor'; icon: string }[]>([]);
+  const [giftList, setGiftList] = useState<{ name: string; value: number; team: 'local' | 'visitor'; icon: string; image?: string }[]>([]);
   const [newGiftName, setNewGiftName] = useState('Rosa');
   const [newGiftValue, setNewGiftValue] = useState(1);
   const [newGiftTeam, setNewGiftTeam] = useState<'local' | 'visitor'>('local');
+  const [newGiftImage, setNewGiftImage] = useState('');
 
   // TikTok Connection State
   const [isTikTokConnecting, setIsTikTokConnecting] = useState(false);
@@ -163,21 +164,21 @@ export const AdminPanel: React.FC = () => {
       setScoreboardTextScale(parseInt(settings.scoreboard_text_scale || '100', 10));
       setBallScale(parseInt(settings.ball_scale || '100', 10));
       
-      if (settings.gift_values) {
-        try {
-          const parsed = JSON.parse(settings.gift_values);
-          const formatted = Object.entries(parsed).map(([name, data]: [string, any]) => {
-            if (typeof data === 'number') {
-              const defaultGift = TIKTOK_GIFTS.find(g => g.name === name);
-              return { name, value: data, team: 'local' as const, icon: defaultGift?.icon || '🎁' };
-            }
-            return { name, value: Number(data.value), team: data.team || 'local', icon: data.icon || '🎁' };
-          });
-          setGiftList(formatted);
-        } catch (e) {
-          console.error(e);
+        if (settings.gift_values) {
+          try {
+            const parsed = JSON.parse(settings.gift_values);
+            const formatted = Object.entries(parsed).map(([name, data]: [string, any]) => {
+              if (typeof data === 'number') {
+                const defaultGift = TIKTOK_GIFTS.find(g => g.name === name);
+                return { name, value: data, team: 'local' as const, icon: defaultGift?.icon || '🎁', image: '' };
+              }
+              return { name, value: Number(data.value), team: data.team || 'local', icon: data.icon || '🎁', image: data.image || '' };
+            });
+            setGiftList(formatted);
+          } catch (e) {
+            console.error(e);
+          }
         }
-      }
     }
   }, [settings]);
 
@@ -265,7 +266,7 @@ export const AdminPanel: React.FC = () => {
   const addGiftRow = () => {
     if (!newGiftName.trim()) return;
     const currentValues = giftList.reduce((acc, curr) => {
-      acc[curr.name] = { value: curr.value, team: curr.team, icon: curr.icon };
+      acc[curr.name] = { value: curr.value, team: curr.team, icon: curr.icon, image: curr.image || '' };
       return acc;
     }, {} as Record<string, any>);
 
@@ -273,7 +274,8 @@ export const AdminPanel: React.FC = () => {
     currentValues[newGiftName.trim()] = {
       value: newGiftValue,
       team: newGiftTeam,
-      icon: selectedGift?.icon || '🎁'
+      icon: selectedGift?.icon || '🎁',
+      image: newGiftImage || ''
     };
     
     handleFieldChange('gift_values', JSON.stringify(currentValues));
@@ -283,7 +285,7 @@ export const AdminPanel: React.FC = () => {
     const currentValues = giftList
       .filter(item => item.name !== nameToRemove)
       .reduce((acc, curr) => {
-        acc[curr.name] = { value: curr.value, team: curr.team, icon: curr.icon };
+        acc[curr.name] = { value: curr.value, team: curr.team, icon: curr.icon, image: curr.image || '' };
         return acc;
       }, {} as Record<string, any>);
 
@@ -1427,7 +1429,7 @@ export const AdminPanel: React.FC = () => {
 
               <div className="space-y-4">
                 {/* Inputs to add new */}
-                <div className="grid grid-cols-4 gap-2 items-end">
+                <div className="grid grid-cols-5 gap-2 items-end">
                   <div className="col-span-1">
                     <label className="block text-[9px] uppercase text-slate-400 font-semibold mb-1">Nombre Regalo</label>
                     <select
@@ -1464,6 +1466,16 @@ export const AdminPanel: React.FC = () => {
                       <option value="local">Local</option>
                       <option value="visitor">Visitante</option>
                     </select>
+                  </div>
+                  <div className="col-span-1">
+                    <label className="block text-[9px] uppercase text-slate-400 font-semibold mb-1">URL Imagen</label>
+                    <input
+                      type="text"
+                      value={newGiftImage}
+                      onChange={(e) => setNewGiftImage(e.target.value)}
+                      placeholder="https://ejemplo.com/icono.png"
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-100 focus:outline-none"
+                    />
                   </div>
                   <button
                     onClick={addGiftRow}
@@ -1516,12 +1528,13 @@ export const AdminPanel: React.FC = () => {
 
                 {/* Table grid */}
                 <div className="max-h-[350px] overflow-y-auto border border-slate-800 rounded-lg">
-                  <table className="w-full text-xs text-left border-collapse">
+                    <table className="w-full text-xs text-left border-collapse">
                     <thead>
                       <tr className="bg-slate-900 text-slate-400 border-b border-slate-800 uppercase tracking-wider text-[9px]">
                         <th className="px-4 py-2">Regalo</th>
                         <th className="px-4 py-2">Equipo</th>
                         <th className="px-4 py-2">Diamantes</th>
+                        <th className="px-4 py-2">Imagen</th>
                         <th className="px-4 py-2 text-right">Acción</th>
                       </tr>
                     </thead>
@@ -1537,6 +1550,13 @@ export const AdminPanel: React.FC = () => {
                             </span>
                           </td>
                           <td className="px-4 py-2.5 font-bold text-amber-400">{item.value} 💎</td>
+                          <td className="px-4 py-2.5">
+                            {item.image ? (
+                              <img src={item.image} alt={item.name} className="h-6 w-6 object-contain rounded" />
+                            ) : (
+                              <span className="text-slate-500">—</span>
+                            )}
+                          </td>
                           <td className="px-4 py-2.5 text-right">
                             <button
                               onClick={() => removeGiftRow(item.name)}

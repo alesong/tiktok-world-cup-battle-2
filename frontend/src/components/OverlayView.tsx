@@ -139,7 +139,7 @@ export const OverlayView: React.FC = () => {
       if (typeof data === 'number') {
         return { name, value: data, team: 'local', icon: '🎁' };
       }
-      return { name, value: Number(data.value), team: data.team || 'local', icon: data.icon || '🎁' };
+      return { name, value: Number(data.value), team: data.team || 'local', icon: data.icon || '🎁', image: data.image || '' };
     });
     giftListLocal = allGifts.filter(g => g.team === 'local');
     giftListVisitor = allGifts.filter(g => g.team === 'visitor');
@@ -511,8 +511,12 @@ export const OverlayView: React.FC = () => {
                       className={`flex flex-col items-center bg-slate-900/80 rounded-xl border transition-all duration-300 ${isHighlighted ? 'border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.9)] z-10' : 'border-white/10 shadow-xl'}`}
                       style={{ padding: `${0.31 * scale * giftCardMargin * giftCardScale}vw`, margin: `0 ${0.21 * scale * giftCardMargin * giftCardScale}vw` }}
                     >
-                      <span className="drop-shadow-lg" style={{ fontSize: `${1.56 * scale * giftCardScale * cardScale}vw`, marginBottom: `${0.1 * scale}vw` }}>{gift.icon}</span>
-                      <span className="font-sports font-bold text-white tracking-wider uppercase text-center" style={{ fontSize: `${0.52 * scale * giftCardScale}vw` }}>AVANZAR {gift.value} PASOS</span>
+                      {gift.image ? (
+                        <img src={gift.image} alt={gift.name} className="object-contain drop-shadow-lg" style={{ width: `${1.56 * scale * giftCardScale * cardScale}vw`, height: `${1.56 * scale * giftCardScale * cardScale}vw`, marginBottom: `${0.1 * scale}vw` }} />
+                      ) : (
+                        <span className="drop-shadow-lg" style={{ fontSize: `${1.56 * scale * giftCardScale * cardScale}vw`, marginBottom: `${0.1 * scale}vw` }}>{gift.icon}</span>
+                      )}
+                      <span className="font-sports font-bold text-white tracking-wider uppercase text-center" style={{ fontSize: `${0.52 * scale * giftCardScale}vw` }}>PATEAR BALÓN {gift.value} PASOS</span>
                       <div className="text-amber-500 font-black animate-pulse" style={{ fontSize: `${1.56 * scale * giftCardScale * cardScale}vw`, marginTop: `${0.1 * scale}vw` }}>➔</div>
                     </div>
                   );
@@ -554,8 +558,12 @@ export const OverlayView: React.FC = () => {
                       className={`flex flex-col items-center bg-slate-900/80 rounded-xl border transition-all duration-300 ${isHighlighted ? 'border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.9)] z-10' : 'border-white/10 shadow-xl'}`}
                       style={{ padding: `${0.31 * scale * giftCardMargin * giftCardScale}vw`, margin: `0 ${0.21 * scale * giftCardMargin * giftCardScale}vw` }}
                     >
-                      <span className="drop-shadow-lg" style={{ fontSize: `${1.56 * scale * giftCardScale * cardScale}vw`, marginBottom: `${0.1 * scale}vw` }}>{gift.icon}</span>
-                      <span className="font-sports font-bold text-white tracking-wider uppercase text-center" style={{ fontSize: `${0.52 * scale * giftCardScale}vw` }}>AVANZAR {gift.value} PASOS</span>
+                      {gift.image ? (
+                        <img src={gift.image} alt={gift.name} className="object-contain drop-shadow-lg" style={{ width: `${1.56 * scale * giftCardScale * cardScale}vw`, height: `${1.56 * scale * giftCardScale * cardScale}vw`, marginBottom: `${0.1 * scale}vw` }} />
+                      ) : (
+                        <span className="drop-shadow-lg" style={{ fontSize: `${1.56 * scale * giftCardScale * cardScale}vw`, marginBottom: `${0.1 * scale}vw` }}>{gift.icon}</span>
+                      )}
+                      <span className="font-sports font-bold text-white tracking-wider uppercase text-center" style={{ fontSize: `${0.52 * scale * giftCardScale}vw` }}>PATEAR BALÓN {gift.value} PASOS</span>
                       <div className="text-amber-500 font-black animate-pulse" style={{ fontSize: `${1.56 * scale * giftCardScale * cardScale}vw`, marginTop: `${0.1 * scale}vw` }}>←</div>
                     </div>
                   );
