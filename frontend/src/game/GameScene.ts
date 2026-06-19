@@ -79,6 +79,7 @@ export class GameScene extends Phaser.Scene {
       
       if (state.matchState === 'celebrating') {
         this.triggerGoalCelebration();
+        return; // Ball stays at goal line during celebration — don't recalculate targetBallX
       } else if (state.matchState === 'idle' || state.matchState === 'finished') {
         this.targetBallX = 960;
         this.cameras.main.zoomTo(1.0, 500);
@@ -91,7 +92,9 @@ export class GameScene extends Phaser.Scene {
         this.postGoalReturnTimer = 3000;
       }
 
-      // Always update targetBallX — ball lerps smoothly regardless of the timer
+      // During the post-goal delay, freeze ball position at the goal line so players can celebrate
+      if (this.postGoalReturnTimer > 0) return;
+
       const maxDiamonds = parseInt(state.settings.goal_distance_diamonds || '200', 10);
       const maxPixels = parseInt(state.settings.goal_distance_pixels || '600', 10);
       const ratio = Math.max(-1, Math.min(1, state.ballProgress / maxDiamonds));
@@ -121,12 +124,16 @@ export class GameScene extends Phaser.Scene {
     const matchState = store.matchState;
     const isTurbo = store.settings.event_turbo === 'true';
 
-    // Decrement post-goal return timer — targetBallX is already kept updated by the subscribe callback
+    // Decrement post-goal return timer — once expired, recalculate targetBallX from current progress
     if (this.postGoalReturnTimer > 0) {
       this.postGoalReturnTimer -= _delta;
       if (this.postGoalReturnTimer <= 0) {
         this.postGoalReturnTimer = 0;
         this.isGoalCelebrating = false;
+        const maxDiamonds = parseInt(store.settings.goal_distance_diamonds || '200', 10);
+        const maxPixels = parseInt(store.settings.goal_distance_pixels || '600', 10);
+        const ratio = Math.max(-1, Math.min(1, store.ballProgress / maxDiamonds));
+        this.targetBallX = 960 + (ratio * maxPixels);
       }
     }
 
@@ -150,15 +157,15 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    // 2. Ball bouncing physics — only bounce while ball is moving
-    if (speed > 0.5) {
-      this.ballBouncePhase += speed * 0.15;
+    // 2. Ball bouncing physics — barely-t perceptible roll, no visible oscillation
+    if (speed > 3) {
+      this.ballBouncePhase += speed * 0.1;
     } else {
-      this.ballBouncePhase = Phaser.Math.Linear(this.ballBouncePhase, 0, 0.08);
+      this.ballBouncePhase = 0;
     }
     
-    // Bounce amplitude: proportional to speed
-    const bounceHeight = Math.abs(Math.sin(this.ballBouncePhase)) * -22 * Math.min(1.5, Math.max(0.2, speed * 0.5));
+    // Minimal bounce (max 2px) — just enough to suggest rolling, no vaivén
+    const bounceHeight = Math.abs(Math.sin(this.ballBouncePhase)) * -2;
 
     // Random vertical wander for players + ball when playing
     if (matchState === 'playing') {
