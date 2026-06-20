@@ -299,18 +299,9 @@ export class TikTokLiveService {
       const totalDiamonds = baseValue * totalCount * multiplier;
 
       let teamSide: 'local' | 'visitor' = 'local';
-      const isConfiguredGift = giftData !== undefined && giftData !== null;
-      if (isConfiguredGift) {
-        if (typeof giftData === 'object' && giftData.team) {
-          teamSide = giftData.team;
-        }
-      } else {
-        const visitorGifts = ['TikTok', 'Perfume', 'Universo'];
-        if (visitorGifts.includes(event.giftName)) {
-          teamSide = 'visitor';
-        } else {
-          teamSide = Math.random() < 0.5 ? 'local' : 'visitor';
-        }
+
+      if (giftData && typeof giftData === 'object' && giftData.team) {
+        teamSide = giftData.team;
       }
 
       const teamId = await getSettingValue(`${teamSide}_team_id`) || (teamSide === 'local' ? 'ARG' : 'BRA');

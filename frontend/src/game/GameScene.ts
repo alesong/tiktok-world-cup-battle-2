@@ -442,12 +442,11 @@ export class GameScene extends Phaser.Scene {
   private animatePlayers(time: number, speed: number) {
     const matchState = useGameStore.getState().matchState;
     const isPlaying = matchState === 'playing';
-    const isMoving = speed > 0.5;
     
-    // Running speed factor — no stride animation when ball is stationary
-    const runCycle = time * (isPlaying && isMoving ? 0.018 : 0);
-    const swingAmp = isPlaying && isMoving ? 35 : 0;
-    const bounceAmp = isPlaying && isMoving ? 4 : 0;
+    // Running speed factor — always show stride animation when match is playing
+    const runCycle = time * (isPlaying ? 0.018 : 0);
+    const swingAmp = isPlaying ? 35 : 0;
+    const bounceAmp = isPlaying ? 4 : 0;
 
     // Set player visual targets: players hover around the ball
     // Local (Left) chases ball from left; Visitor (Right) chases ball from right
