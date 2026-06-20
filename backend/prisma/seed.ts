@@ -57,6 +57,7 @@ const DEFAULT_TEAMS: { id: string; name: string; flag: string; primaryColor: str
   { id: 'GUA', name: 'Guatemala', flag: '🇬🇹', primaryColor: '#0066FF', secondaryColor: '#FFFFFF', jerseyColor: '#FFFFFF' },
   { id: 'NIC', name: 'Nicaragua', flag: '🇳🇮', primaryColor: '#0039A6', secondaryColor: '#FFFFFF', jerseyColor: '#0039A6' },
   { id: 'CUB', name: 'Cuba', flag: '🇨🇺', primaryColor: '#D52B1E', secondaryColor: '#0039A6', jerseyColor: '#FFFFFF' },
+  { id: 'CUW', name: 'Curazao', flag: '🇨🇼', primaryColor: '#0039A6', secondaryColor: '#FEDF00', jerseyColor: '#0039A6' },
   { id: 'DOM', name: 'República Dominicana', flag: '🇩🇴', primaryColor: '#D52B1E', secondaryColor: '#0039A6', jerseyColor: '#FFFFFF' },
   { id: 'HAI', name: 'Haití', flag: '🇭🇹', primaryColor: '#D9252B', secondaryColor: '#0039A6', jerseyColor: '#D9252B' },
   { id: 'PRI', name: 'Puerto Rico', flag: '🇵🇷', primaryColor: '#D91023', secondaryColor: '#FFFFFF', jerseyColor: '#0039A6' },

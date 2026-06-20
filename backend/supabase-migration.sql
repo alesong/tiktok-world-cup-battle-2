@@ -105,5 +105,6 @@ INSERT INTO twc_teams (id, name, flag, "primaryColor", "secondaryColor", "jersey
   ('CUB', 'Cuba', '🇨🇺', '#D52B1E', '#0039A6', '#FFFFFF'),
   ('DOM', 'República Dominicana', '🇩🇴', '#D52B1E', '#0039A6', '#FFFFFF'),
   ('HAI', 'Haití', '🇭🇹', '#D9252B', '#0039A6', '#D9252B'),
-  ('PRI', 'Puerto Rico', '🇵🇷', '#D91023', '#FFFFFF', '#0039A6')
+  ('PRI', 'Puerto Rico', '🇵🇷', '#D91023', '#FFFFFF', '#0039A6'),
+  ('CUW', 'Curazao', '🇨🇼', '#0039A6', '#FEDF00', '#0039A6')
 ON CONFLICT (id) DO NOTHING;
